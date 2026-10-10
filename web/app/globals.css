@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --marca: #0c4a6e;
+  --marca-clara: #075985;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-marca: var(--marca);
+  --color-marca-clara: var(--marca-clara);
+  /* Sin descargas de fuentes: pila del sistema (más ligera y funciona sin conexión a Google) */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  color-scheme: light;
+  /* Respeta el tamaño de texto que el usuario eligió en su dispositivo */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Foco visible y consistente para teclado */
+:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 3px solid #0369a1;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Texto solo para lectores de pantalla (Tailwind ya trae sr-only; esto cubre el enlace de salto) */
+.salto:focus {
+  position: fixed;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 100;
+}
+
+/* Muestras de nivel: color + trama, para no depender solo del color.
+   Las tramas del mapa (components/patrones.ts) dibujan lo mismo. */
+.sw {
+  display: inline-block;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 3px;
+  border: 1px solid rgba(15, 23, 42, 0.55);
+  background-color: #cbd5e1;
+}
+.sw-lg { width: 1.5rem; height: 1.5rem; }
+.sw-0 { background-color: #e6ebf1; background-image: none; border-style: dashed; }
+.sw-1 {
+  background-color: #f3d27a;
+  background-image: radial-gradient(rgba(60, 40, 0, 0.4) 1px, transparent 1.2px);
+  background-size: 5px 5px;
+}
+.sw-2 {
+  background-color: #ec9a56;
+  background-image: repeating-linear-gradient(45deg, rgba(90, 40, 0, 0.35) 0 1px, transparent 1px 5px);
+}
+.sw-3 {
+  background-color: #d4574f;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(80, 0, 0, 0.35) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-45deg, rgba(80, 0, 0, 0.35) 0 1px, transparent 1px 5px);
+}
+.sw-4 {
+  background-color: #7b2142;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.45) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.45) 0 1px, transparent 1px 5px);
+}
+
+/* Prosa de las páginas informativas (sin plugin de tipografía) */
+.prosa { line-height: 1.7; font-size: 1.0625rem; color: #1e293b; }
+.prosa h2 { margin-top: 2.25rem; margin-bottom: 0.75rem; font-size: 1.5rem; line-height: 1.25; font-weight: 700; color: #0f172a; scroll-margin-top: 4.5rem; }
+.prosa h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.2rem; line-height: 1.3; font-weight: 700; color: #0f172a; }
+.prosa p { margin-top: 0.75rem; }
+.prosa ul, .prosa ol { margin-top: 0.75rem; padding-left: 1.5rem; }
+.prosa ul { list-style: disc; }
+.prosa ol { list-style: decimal; }
+.prosa li { margin-top: 0.4rem; padding-left: 0.2rem; }
+.prosa a { color: #075985; text-decoration: underline; text-underline-offset: 2px; }
+.prosa a:hover { color: #0c4a6e; }
+.prosa strong { color: #0f172a; }
+.prosa table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.95rem; }
+.prosa th, .prosa td { border: 1px solid #cbd5e1; padding: 0.5rem 0.6rem; text-align: left; vertical-align: top; }
+.prosa th { background: #f1f5f9; }
+.prosa code { background: #e2e8f0; border-radius: 4px; padding: 0.1rem 0.35rem; font-size: 0.9em; }
+.prosa pre { margin-top: 0.75rem; overflow-x: auto; background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 0.9rem; font-size: 0.85rem; line-height: 1.5; }
+.prosa pre code { background: none; padding: 0; color: inherit; }
+
+/* Controles de MapLibre: más grandes para dedos y con mejor contraste */
+.maplibregl-ctrl-group button { width: 40px; height: 40px; }
+.maplibregl-ctrl-attrib { font-size: 11px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

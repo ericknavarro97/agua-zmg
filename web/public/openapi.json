@@ -1,0 +1,751 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "API pública de Agua ZMG",
+    "version": "1.0.0",
+    "summary": "Gravedad del agua por colonia en la Zona Metropolitana de Guadalajara, según reportes de vecinos.",
+    "description": "Datos abiertos y agregados por colonia. NO incluye huellas, comentarios ni ningún dato personal.\n\nLos valores reflejan reportes ciudadanos sin verificar (percepción), no mediciones de laboratorio; no es información oficial ni consejo médico. Que una colonia no tenga score no significa que el agua sea buena: significa que aún no hay reportes suficientes.\n\nUna colonia solo recibe score cuando alcanza el mínimo publicable de reportes (ver /metodologia).\n\nLímites de colonias: aproximados, derivados del catálogo de colonias del INE (corte dic-2020); no son oficiales.",
+    "license": {
+      "name": "ODbL-1.0 (provisional, pendiente de confirmación del equipo)",
+      "url": "https://opendatacommons.org/licenses/odbl/1-0/"
+    }
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "El mismo origen desde el que se sirve esta especificación"
+    }
+  ],
+  "tags": [
+    {
+      "name": "v1",
+      "description": "API pública de solo lectura, CORS abierto, con caché"
+    }
+  ],
+  "paths": {
+    "/api/v1": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "operationId": "indice",
+        "summary": "Índice de la API",
+        "responses": {
+          "200": {
+            "description": "Lista de endpoints y metadatos de licencia",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "$ref": "#/components/headers/Access-Control-Allow-Origin"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/Cache-Control"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
+              },
+              "X-Licencia": {
+                "$ref": "#/components/headers/X-Licencia"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/colonias": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "operationId": "listarColonias",
+        "summary": "Colonias en GeoJSON con score, nivel, confianza y número de reportes",
+        "description": "FeatureCollection con una Feature por colonia. Las colonias sin reportes suficientes llevan score, nivel, confianza, n, n_huellas y ultimo en null. El objeto `metadata` (miembro extranjero de GeoJSON) trae licencia, atribución y aviso.",
+        "parameters": [
+          {
+            "name": "municipio",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "description": "Filtra por municipio. Acepta el nombre oficial o variantes sin acentos ni mayúsculas (`tlaquepaque` equivale a «San Pedro Tlaquepaque»). Un nombre que no sea de la ZMG responde 400."
+          },
+          {
+            "name": "con_datos",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "`1` devuelve solo colonias que alcanzan el mínimo publicable."
+          },
+          {
+            "name": "sin_geometria",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "`1` omite los polígonos (geometry = null): respuesta mucho más ligera."
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ETag de una respuesta anterior; si coincide, se responde 304."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "FeatureCollection de colonias",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "$ref": "#/components/headers/Access-Control-Allow-Origin"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/Cache-Control"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
+              },
+              "X-Licencia": {
+                "$ref": "#/components/headers/X-Licencia"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              }
+            },
+            "content": {
+              "application/geo+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColoniasGeoJSON"
+                }
+              }
+            }
+          },
+          "503": {
+            "$ref": "#/components/responses/NoDisponible"
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "304": {
+            "description": "Sin cambios (el cliente envió If-None-Match con el ETag vigente)"
+          }
+        }
+      },
+      "options": {
+        "tags": [
+          "v1"
+        ],
+        "operationId": "opcionesColonias",
+        "summary": "Preflight CORS",
+        "responses": {
+          "204": {
+            "description": "Sin contenido"
+          }
+        }
+      }
+    },
+    "/api/v1/colonias/{id}": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "operationId": "obtenerColonia",
+        "summary": "Detalle de una colonia",
+        "description": "Agregados de reportes de los últimos 30 días y datos externos (oficiales, académicos, periodísticos o ciudadanos) vinculados a la colonia. Los datos externos NO entran al score; cada uno trae su fuente y URL, y `confianza_vinculo` indica qué tan seguro es que corresponda a esta colonia. La serie diaria solo se entrega cuando la colonia alcanza el mínimo publicable.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Identificador de la colonia (el `id` de /api/v1/colonias)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalle de la colonia",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "$ref": "#/components/headers/Access-Control-Allow-Origin"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/Cache-Control"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
+              },
+              "X-Licencia": {
+                "$ref": "#/components/headers/X-Licencia"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColoniaDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/NoDisponible"
+          }
+        }
+      },
+      "options": {
+        "tags": [
+          "v1"
+        ],
+        "operationId": "opcionesColonia",
+        "summary": "Preflight CORS",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Sin contenido"
+          }
+        }
+      }
+    },
+    "/api/v1/resumen.csv": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "operationId": "resumenCsv",
+        "summary": "Resumen por colonia en CSV",
+        "description": "Una fila por colonia, solo agregados. Columnas: id, nombre, municipio, score, nivel, confianza, n_reportes, n_huellas, ultimo_reporte, fecha_corte, licencia. Codificación UTF-8, saltos de línea CRLF. Sin huellas, sin comentarios, sin datos personales.",
+        "parameters": [
+          {
+            "name": "municipio",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "description": "Filtra por municipio. Acepta el nombre oficial o variantes sin acentos ni mayúsculas (`tlaquepaque` equivale a «San Pedro Tlaquepaque»). Un nombre que no sea de la ZMG responde 400."
+          },
+          {
+            "name": "con_datos",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ETag de una respuesta anterior; si coincide, se responde 304."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "$ref": "#/components/headers/Access-Control-Allow-Origin"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/Cache-Control"
+              },
+              "Link": {
+                "$ref": "#/components/headers/Link"
+              },
+              "X-Licencia": {
+                "$ref": "#/components/headers/X-Licencia"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "$ref": "#/components/responses/NoDisponible"
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "304": {
+            "description": "Sin cambios (el cliente envió If-None-Match con el ETag vigente)"
+          }
+        }
+      },
+      "options": {
+        "tags": [
+          "v1"
+        ],
+        "operationId": "opcionesResumen",
+        "summary": "Preflight CORS",
+        "responses": {
+          "204": {
+            "description": "Sin contenido"
+          }
+        }
+      }
+    },
+    "/api/salud": {
+      "get": {
+        "operationId": "salud",
+        "summary": "Chequeo de salud del servicio (para monitores)",
+        "description": "Verifica de verdad la conexión con la base de datos. Responde 503 si la base no contesta. Nunca se cachea.",
+        "responses": {
+          "200": {
+            "description": "Servicio y base funcionando",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Salud"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "La base de datos no responde",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Salud"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "headers": {
+      "Access-Control-Allow-Origin": {
+        "description": "Siempre `*`",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Cache-Control": {
+        "description": "public, max-age=60, s-maxage=300, stale-while-revalidate=600, stale-if-error=3600",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Link": {
+        "description": "Enlace a la licencia (rel=\"license\")",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "X-Licencia": {
+        "description": "Identificador de la licencia de los datos",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ETag": {
+        "description": "Huella del contenido; úsala en If-None-Match",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Petición inválida o recurso inexistente",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NoDisponible": {
+        "description": "Servicio temporalmente no disponible",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "Salud": {
+        "type": "object",
+        "required": [
+          "ok",
+          "db",
+          "version"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "db": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "string",
+            "examples": [
+              "0.1.0+a1b2c3d4e5f6"
+            ]
+          }
+        }
+      },
+      "Licencia": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "examples": [
+              "ODbL-1.0"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "provisional",
+              "confirmada"
+            ]
+          }
+        }
+      },
+      "Metadata": {
+        "type": "object",
+        "properties": {
+          "version_api": {
+            "type": "string",
+            "examples": [
+              "v1"
+            ]
+          },
+          "generado": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "licencia": {
+            "$ref": "#/components/schemas/Licencia"
+          },
+          "atribucion": {
+            "type": "string"
+          },
+          "aviso": {
+            "type": "string"
+          },
+          "n_colonias": {
+            "type": "integer"
+          }
+        }
+      },
+      "Confianza": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "baja",
+          "media",
+          "alta",
+          null
+        ]
+      },
+      "ColoniaProps": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "municipio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fuente_geom": {
+            "type": "string",
+            "description": "Procedencia del polígono"
+          },
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 4,
+            "description": "Gravedad ponderada 1 (leve) a 4 (crítica); null si no hay reportes suficientes"
+          },
+          "nivel": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 4
+          },
+          "confianza": {
+            "$ref": "#/components/schemas/Confianza"
+          },
+          "n": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Reportes contados en la ventana vigente (null si no alcanza el mínimo)"
+          },
+          "n_huellas": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Cuántos dispositivos distintos reportaron (conteo, no identificadores)"
+          },
+          "ultimo": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ColoniasGeoJSON": {
+        "type": "object",
+        "required": [
+          "type",
+          "features"
+        ],
+        "properties": {
+          "type": {
+            "const": "FeatureCollection"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/Metadata"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "id",
+                "properties",
+                "geometry"
+              ],
+              "properties": {
+                "type": {
+                  "const": "Feature"
+                },
+                "id": {
+                  "type": "integer"
+                },
+                "properties": {
+                  "$ref": "#/components/schemas/ColoniaProps"
+                },
+                "geometry": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "description": "Polygon o MultiPolygon (EPSG:4326); null con sin_geometria=1"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ColoniaDetalle": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "municipio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fuente_geom": {
+            "type": "string"
+          },
+          "reportes": {
+            "type": "object",
+            "properties": {
+              "n": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "n_huellas": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "score": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "nivel": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "confianza": {
+                "$ref": "#/components/schemas/Confianza"
+              },
+              "ultimo": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "serie": {
+                "type": "array",
+                "description": "Últimos 30 días, por día calendario en hora de Guadalajara. Vacía si la colonia no alcanza el mínimo publicable.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "dia": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "n": {
+                      "type": "integer"
+                    },
+                    "score": {
+                      "type": "number",
+                      "description": "Promedio simple de gravedad de ese día"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "oficial": {
+            "type": "array",
+            "description": "Datos externos vinculados. NO entran al score.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fuente": {
+                  "type": "string"
+                },
+                "tipo": {
+                  "type": "string",
+                  "enum": [
+                    "oficial",
+                    "academica",
+                    "periodistica",
+                    "ciudadana"
+                  ]
+                },
+                "fecha": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date"
+                },
+                "parametro": {
+                  "type": "string"
+                },
+                "valor": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unidad": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "confianza_vinculo": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "alta",
+                    "media",
+                    "baja",
+                    null
+                  ]
+                }
+              }
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/Metadata"
+          }
+        }
+      }
+    }
+  }
+}

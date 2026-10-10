@@ -1,0 +1,143 @@
+# Producción en un VPS (Plan B de docs/research/despliegue.md): web + PostGIS + job de migraciones,
+# y, opcionalmente, Caddy como proxy inverso con HTTPS automático (perfil "caddy").
+#
+# Pasos completos en docs/DEPLOY.md. Resumen:
+#   cp web/.env.example .env.prod      # y rellénalo (ver comentarios dentro)
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod --profile caddy up -d   # con HTTPS propio
+#
+# Las variables obligatorias usan ${VAR:?...}: si faltan, compose se niega a arrancar.
+
+name: agua-zmg-prod
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: agua
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env.prod (usa openssl rand -hex 24)}
+      POSTGRES_DB: agua_zmg
+    # La base NO se publica al host ni a internet: solo la ve la red interna de compose.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agua -d agua_zmg"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    shm_size: 256mb
+
+  # Job de una sola corrida: aplica db/migrations/*.sql y termina. `web` espera a que acabe bien.
+  migrate:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      target: migrate
+    environment:
+      DATABASE_URL: postgres://agua:${POSTGRES_PASSWORD}@db:5432/agua_zmg
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # Retención de datos: cada 24 h anonimiza identificadores y borra comentarios de más de 30 días
+  # (lo que promete /privacidad). Reutiliza la imagen del job de migraciones, que trae scripts/purge.ts.
+  # Si falla una corrida, escribe el error en el log y reintenta a la siguiente; el panel /admin avisa si hay retención vencida.
+  retencion:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      target: migrate
+    environment:
+      DATABASE_URL: postgres://agua:${POSTGRES_PASSWORD}@db:5432/agua_zmg
+    command:
+      - sh
+      - -c
+      - 'while true; do pnpm exec tsx scripts/purge.ts || echo "purge fallo: $$(date -u)"; sleep 86400; done'
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      target: runner
+      args:
+        APP_VERSION: ${APP_VERSION:-}
+        # NEXT_PUBLIC_*: se incrustan al construir la imagen (cambiarlas exige reconstruir)
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+        NEXT_PUBLIC_MAP_STYLE_URL: ${NEXT_PUBLIC_MAP_STYLE_URL:-}
+        # Datos del sitio (contacto, responsable, revisiones, licencia): las páginas los leen al construir
+        CONTACTO_EMAIL: ${CONTACTO_EMAIL:-}
+        RESPONSABLE_NOMBRE: ${RESPONSABLE_NOMBRE:-}
+        RESPONSABLE_DOMICILIO: ${RESPONSABLE_DOMICILIO:-}
+        AVISO_PRIVACIDAD_REVISADO: ${AVISO_PRIVACIDAD_REVISADO:-}
+        GUIA_REVISADA_SALUD: ${GUIA_REVISADA_SALUD:-}
+        DATOS_LICENCIA_NOMBRE: ${DATOS_LICENCIA_NOMBRE:-}
+        DATOS_LICENCIA_URL: ${DATOS_LICENCIA_URL:-}
+    image: agua-zmg-web:${APP_VERSION:-local}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://agua:${POSTGRES_PASSWORD}@db:5432/agua_zmg
+      HASH_SALT: ${HASH_SALT:?define HASH_SALT (>= 32 caracteres) en .env.prod}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?define ADMIN_TOKEN en .env.prod (usa openssl rand -hex 32)}
+      ORIGENES_PERMITIDOS: ${ORIGENES_PERMITIDOS:-}
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+      # Sin valor = se pasa tal cual desde .env.prod solo si está definida (si no, la app usa su valor por defecto)
+      CSP_MAPA_ORIGENES:
+      CSP_EMBED_ANCESTORS:
+      LIMITE_GLOBAL_HORA: ${LIMITE_GLOBAL_HORA:-3000}
+      MODO_ATAQUE: ${MODO_ATAQUE:-0}
+      DATOS_LICENCIA_NOMBRE: ${DATOS_LICENCIA_NOMBRE:-}
+      DATOS_LICENCIA_URL: ${DATOS_LICENCIA_URL:-}
+      APP_VERSION: ${APP_VERSION:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    # Solo en loopback: el tráfico público entra por Caddy, Cloudflare Tunnel o un nginx propio.
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    mem_limit: 768m
+
+  # HTTPS automático (Let's Encrypt). Define DOMINIO en .env.prod; debe apuntar al VPS y puertos 80/443 abiertos.
+  # Si pones Cloudflare delante, revisa en docs/DEPLOY.md cómo obtener la IP real del visitante.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["caddy"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+configs:
+  caddyfile:
+    content: |
+      ${DOMINIO:-localhost} {
+        encode zstd gzip
+        # Tope de cuerpo: los reportes son JSON pequeños
+        request_body {
+          max_size 64KB
+        }
+        reverse_proxy web:3000
+      }
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

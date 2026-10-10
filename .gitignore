@@ -1,0 +1,17 @@
+web/public/maplibre/
+
+# Secretos y configuración local (HASH_SALT, ADMIN_TOKEN, POSTGRES_PASSWORD); solo se versionan los ejemplos
+.env
+.env.*
+!.env.example
+web/.env*
+!web/.env.example
+
+# Descargas crudas pesadas de la investigación (cientos de MB; ver data/raw/README.md)
+data/raw/*
+!data/raw/README.md
+# Datos secundarios MIT usados con atribución (README y LICENSE incluidos)
+!data/raw/mapa-agua-zmg/
+
+# Capa alterna del IIEG: licencia de la capa de terceros no declarada; no se redistribuye (se regenera con data/scripts/build-colonias.mjs)
+data/colonias_zmg_iieg_alterna.geojson

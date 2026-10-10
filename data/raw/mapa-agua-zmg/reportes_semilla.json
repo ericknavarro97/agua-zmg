@@ -1,0 +1,616 @@
+[
+  {
+    "colonia": "Americana",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "ITESO / Resistencia Civil por el Valle",
+    "fecha_reporte": "2026-04-24",
+    "descripcion": "Muestreo ciudadano con soporte del ITESO detectó cobre y aluminio en el agua de esta colonia.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/4/24/detectan-metales-contaminacion-fecal-en-el-agua-potable-de-la-zona-metropolitana-de-guadalajara-372848.html",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Americana",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "IMDEC confirmó aluminio y cobre en muestras de esta colonia como parte de 150 análisis en 80 colonias.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Americana",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "otro"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "Milenio",
+    "fecha_reporte": "2026-06",
+    "descripcion": "IMDEC señaló a esta colonia como la de mayor incidencia de reportes por mala calidad del agua.",
+    "fuente_url": "https://www.milenio.com/estados/problemas-calidad-de-agua-jalisco-esto-sabemos",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Jardines del Country",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "color_anormal",
+      "olor"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "El Informador",
+    "fecha_reporte": "2026-03-24",
+    "descripcion": "Vecinos reportaron agua oscura y con mal olor; aproximadamente 20 viviendas afectadas.",
+    "fuente_url": "https://www.informador.mx/jalisco/siapa-persisten-reportes-de-mala-calidad-del-agua-en-guadalajara-20260324-0025.html",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Miravalle",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "otro"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06",
+    "descripcion": "Colonia con alta incidencia de reportes según IMDEC; cercana a la planta potabilizadora Miravalle 1.",
+    "fuente_url": "https://www.milenio.com/estados/problemas-calidad-de-agua-jalisco-esto-sabemos",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Pinar de la Calma",
+    "municipio": "Zapopan",
+    "categorias": [
+      "otro"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06",
+    "descripcion": "Colonia con alta incidencia de reportes según IMDEC.",
+    "fuente_url": "https://www.milenio.com/estados/problemas-calidad-de-agua-jalisco-esto-sabemos",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Colinas de Tonalá",
+    "municipio": "Tonalá",
+    "categorias": [
+      "otro"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06",
+    "descripcion": "Colonia con alta incidencia de reportes según IMDEC.",
+    "fuente_url": "https://www.milenio.com/estados/problemas-calidad-de-agua-jalisco-esto-sabemos",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Moderna",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "color_anormal",
+      "olor"
+    ],
+    "fuente_tipo": "oficial",
+    "fuente_nombre": "CEDHJ",
+    "fecha_reporte": "2025",
+    "descripcion": "Queja colectiva de 255 personas ante la CEDHJ por agua turbia, amarillenta y con olor desagradable.",
+    "fuente_url": "https://udgtv.com/noticias/siapa-enfrenta-quejas-por-suministro-de-agua-en-guadalajara/309061",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Centro",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "otro"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06",
+    "descripcion": "Colonia con alta incidencia de reportes según IMDEC.",
+    "fuente_url": "https://www.milenio.com/estados/problemas-calidad-de-agua-jalisco-esto-sabemos",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Centro",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "metales_pesados",
+      "fecal_bacteriologico"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "ITESO / Resistencia Civil por el Valle",
+    "fecha_reporte": "2026-04-24",
+    "descripcion": "Incluida en el muestreo de 42 muestras en 27 colonias; 97% sin cloro residual adecuado.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/4/24/detectan-metales-contaminacion-fecal-en-el-agua-potable-de-la-zona-metropolitana-de-guadalajara-372848.html",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "El Fresno",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "ITESO / Resistencia Civil por el Valle",
+    "fecha_reporte": "2026-04-24",
+    "descripcion": "Se detectó plomo en las muestras de agua de esta colonia.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/4/24/detectan-metales-contaminacion-fecal-en-el-agua-potable-de-la-zona-metropolitana-de-guadalajara-372848.html",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "San Rafael",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "ITESO / Resistencia Civil por el Valle",
+    "fecha_reporte": "2026-04-24",
+    "descripcion": "Incluida en el muestreo de 27 colonias; detectados metales en el agua.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/4/24/detectan-metales-contaminacion-fecal-en-el-agua-potable-de-la-zona-metropolitana-de-guadalajara-372848.html",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "San Rafael",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "IMDEC detectó aluminio y plomo en muestras de agua de esta colonia.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Mexicaltzingo",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "fecal_bacteriologico",
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "ITESO / Resistencia Civil por el Valle",
+    "fecha_reporte": "2026-04-24",
+    "descripcion": "Incluida en el muestreo de 27 colonias; sin cloro residual adecuado y con presencia de metales.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/4/24/detectan-metales-contaminacion-fecal-en-el-agua-potable-de-la-zona-metropolitana-de-guadalajara-372848.html",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Santa Tere",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "IMDEC detectó presencia de cobre en muestras de agua de esta colonia.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Mariano Azuela",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "IMDEC detectó presencia de cobre en muestras de agua de esta colonia.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Jaime Carrillo",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "IMDEC detectó presencia de aluminio en muestras de agua de esta colonia.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Santa Cecilia",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "IMDEC detectó presencia de aluminio en muestras de agua de esta colonia.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Arcos de Guadalupe",
+    "municipio": "Zapopan",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "ITESO / Resistencia Civil por el Valle",
+    "fecha_reporte": "2026-04-24",
+    "descripcion": "Incluida en el muestreo de 27 colonias en Zapopan.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/4/24/detectan-metales-contaminacion-fecal-en-el-agua-potable-de-la-zona-metropolitana-de-guadalajara-372848.html",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Arcos de Guadalupe",
+    "municipio": "Zapopan",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "IMDEC detectó presencia de aluminio en muestras de agua de esta colonia.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Santa Margarita",
+    "municipio": "Zapopan",
+    "categorias": [
+      "fecal_bacteriologico",
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "ITESO / Resistencia Civil por el Valle",
+    "fecha_reporte": "2026-04-24",
+    "descripcion": "Incluida en el muestreo de 27 colonias en Zapopan; 97% de muestras sin cloro residual adecuado.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/4/24/detectan-metales-contaminacion-fecal-en-el-agua-potable-de-la-zona-metropolitana-de-guadalajara-372848.html",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Arenales Tapatíos",
+    "municipio": "Zapopan",
+    "categorias": [
+      "fecal_bacteriologico",
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "ITESO / Resistencia Civil por el Valle",
+    "fecha_reporte": "2026-04-24",
+    "descripcion": "Incluida en el muestreo de 27 colonias en Zapopan; 97% de muestras sin cloro residual adecuado.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/4/24/detectan-metales-contaminacion-fecal-en-el-agua-potable-de-la-zona-metropolitana-de-guadalajara-372848.html",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Lomas del Bosque",
+    "municipio": "Zapopan",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "IMDEC detectó presencia de cobre en muestras de agua de esta colonia.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Mesa de los Ocotes",
+    "municipio": "Zapopan",
+    "categorias": [
+      "desabasto"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "El Informador",
+    "fecha_reporte": "2026-06-21",
+    "descripcion": "Vecinos del norte de Zapopan reportaron desabasto de hasta 2 meses sin servicio regular de agua.",
+    "fuente_url": "https://www.informador.mx/jalisco/siapa-repuntan-quejas-por-escasez-de-agua-en-guadalajara-20260621-0025.html",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Mesa Colorada",
+    "municipio": "Zapopan",
+    "categorias": [
+      "desabasto"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "El Informador",
+    "fecha_reporte": "2026-06-21",
+    "descripcion": "Vecinos del norte de Zapopan reportaron desabasto de hasta 2 meses sin servicio regular de agua.",
+    "fuente_url": "https://www.informador.mx/jalisco/siapa-repuntan-quejas-por-escasez-de-agua-en-guadalajara-20260621-0025.html",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Camichines",
+    "municipio": "Tonalá",
+    "categorias": [
+      "fecal_bacteriologico",
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "ITESO / Resistencia Civil por el Valle",
+    "fecha_reporte": "2026-04-24",
+    "descripcion": "Incluida en el muestreo de 27 colonias en Tonalá; 97% de muestras sin cloro residual adecuado.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/4/24/detectan-metales-contaminacion-fecal-en-el-agua-potable-de-la-zona-metropolitana-de-guadalajara-372848.html",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "El Sáuz",
+    "municipio": "Tlaquepaque",
+    "categorias": [
+      "fecal_bacteriologico",
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "ITESO / Resistencia Civil por el Valle",
+    "fecha_reporte": "2026-04-24",
+    "descripcion": "E. coli detectada en muestras de esta colonia, confirmando contaminación fecal en el suministro.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/4/24/detectan-metales-contaminacion-fecal-en-el-agua-potable-de-la-zona-metropolitana-de-guadalajara-372848.html",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Alamedas de Zalatitán",
+    "municipio": "Tonalá",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "IMDEC detectó cobre en muestras de agua de esta colonia.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Alamedas de Zalatitán",
+    "municipio": "Tonalá",
+    "categorias": [
+      "metales_pesados"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "IMDEC detectó hierro en muestras de agua de esta colonia.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Lomas del Camichín",
+    "municipio": "Tonalá",
+    "categorias": [
+      "color_anormal",
+      "olor"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "El Informador",
+    "fecha_reporte": "2026-03-24",
+    "descripcion": "Reportes de agua oscura y con mal olor extendidos a esta colonia.",
+    "fuente_url": "https://www.informador.mx/jalisco/siapa-persisten-reportes-de-mala-calidad-del-agua-en-guadalajara-20260324-0025.html",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Lomas del Verde Ejidal",
+    "municipio": "El Salto",
+    "categorias": [
+      "desabasto",
+      "otro"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2020",
+    "descripcion": "Casi 11 años sin servicio regular de agua potable; abasto por pipas insuficiente. Vinculado a contaminación del río Santiago.",
+    "fuente_url": "https://revistaselectronicas.ujaen.es/index.php/atma/article/download/5469/5502?inline=1",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Lomas de San Juan",
+    "municipio": "El Salto",
+    "categorias": [
+      "desabasto",
+      "otro"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2020",
+    "descripcion": "Años sin servicio regular de agua potable; abasto por pipas insuficiente en esta colonia de El Salto.",
+    "fuente_url": "https://revistaselectronicas.ujaen.es/index.php/atma/article/download/5469/5502?inline=1",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Jardines del Verde",
+    "municipio": "El Salto",
+    "categorias": [
+      "desabasto",
+      "otro"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "IMDEC",
+    "fecha_reporte": "2020",
+    "descripcion": "Años sin servicio regular de agua potable; abasto por pipas insuficiente en esta colonia de El Salto.",
+    "fuente_url": "https://revistaselectronicas.ujaen.es/index.php/atma/article/download/5469/5502?inline=1",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Zalatitán",
+    "municipio": "Tonalá",
+    "categorias": [
+      "fecal_bacteriologico"
+    ],
+    "fuente_tipo": "academico_ong",
+    "fuente_nombre": "ITESO / Resistencia Civil por el Valle",
+    "fecha_reporte": "2026-04-24",
+    "descripcion": "Detección de E. coli en muestras de agua, confirmando contaminación fecal en el suministro que llega a los hogares.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/4/24/detectan-metales-contaminacion-fecal-en-el-agua-potable-de-la-zona-metropolitana-de-guadalajara-372848.html",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Arcos Vallarta",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "otro"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "LABCSA / NTR Guadalajara",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "Representantes de la colonia firmaron carta abierta a la presidenta Sheinbaum solicitando intervención federal por la crisis de agua del SIAPA.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Obrera",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "otro"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "LABCSA / NTR Guadalajara",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "Representantes de la colonia firmaron carta abierta a la presidenta Sheinbaum solicitando intervención federal por la crisis de agua del SIAPA.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Lafayette",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "otro"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "LABCSA / NTR Guadalajara",
+    "fecha_reporte": "2026-06-28",
+    "descripcion": "Representantes de la colonia firmaron carta abierta a la presidenta Sheinbaum solicitando intervención federal por la crisis de agua del SIAPA.",
+    "fuente_url": "https://labcsa.org/2026/06/28/gdl-con-mas-quejas-de-agua-contaminada/",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "La Nogalera",
+    "municipio": "Zapopan",
+    "categorias": [
+      "color_anormal",
+      "olor"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "Proceso",
+    "fecha_reporte": "2026-03-23",
+    "descripcion": "Habitantes reportaron agua con tonalidades oscuras o amarillentas y mal olor. Parte de las 340+ denuncias en 12 días documentadas en protesta 'Mas agua, menos Mundial'.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/3/23/mas-agua-menos-mundial-denuncian-crisis-sanitaria-por-agua-contaminada-en-guadalajara-368637.html",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "El Mirador",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "color_anormal",
+      "olor",
+      "sedimentos"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "Proceso",
+    "fecha_reporte": "2026-03-23",
+    "descripcion": "Vecinos reportaron agua color café y olor a alcantarilla. Filtros duran 1 mes en vez de 6. Acumulacion de lodo en tinacos, válvulas y mangueras.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/3/23/mas-agua-menos-mundial-denuncian-crisis-sanitaria-por-agua-contaminada-en-guadalajara-368637.html",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "San Eugenio",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "color_anormal",
+      "olor"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "Proceso",
+    "fecha_reporte": "2026-03-23",
+    "descripcion": "Habitantes reportaron agua con tonalidades oscuras o amarillentas y mal olor. Mencionada en protesta 'Mas agua, menos Mundial' del 23 de marzo de 2026.",
+    "fuente_url": "https://www.proceso.com.mx/nacional/estados/2026/3/23/mas-agua-menos-mundial-denuncian-crisis-sanitaria-por-agua-contaminada-en-guadalajara-368637.html",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Prados Providencia",
+    "municipio": "Guadalajara",
+    "categorias": [
+      "otro"
+    ],
+    "fuente_tipo": "oficial",
+    "fuente_nombre": "CEDHJ - Informe Anual 2025",
+    "fecha_reporte": "2025",
+    "descripcion": "Personal del SIAPA no reparo acueducto colapsado, provocando inundacion y danos estructurales. Queja colectiva ante la CEDHJ.",
+    "fuente_url": "https://udgtv.com/noticias/siapa-enfrenta-quejas-por-suministro-de-agua-en-guadalajara/309061",
+    "nivel_confianza": "alta"
+  },
+  {
+    "colonia": "Constitucion",
+    "municipio": "Zapopan",
+    "categorias": [
+      "desabasto"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "LABCSA / El Informador",
+    "fecha_reporte": "2026-05-09",
+    "descripcion": "Un mes con agua tandeada o sin suministro en la colonia Constitucion (La Consti). Por las noches apenas llega un hilo sin presion. Vecinos reportaron con folios al SIAPA sin solucion.",
+    "fuente_url": "https://labcsa.org/2026/05/09/llevan-un-mes-sin-agua-en-la-consti-y-belenes/",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Belenes",
+    "municipio": "Zapopan",
+    "categorias": [
+      "desabasto"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "LABCSA / El Informador",
+    "fecha_reporte": "2026-05-09",
+    "descripcion": "Unidad Habitacional Los Belenes: un mes con agua tandeada o sin suministro. Perimetros especificos afectados: calle Dr. Luis Farah y Av. Venustiano Carranza.",
+    "fuente_url": "https://labcsa.org/2026/05/09/llevan-un-mes-sin-agua-en-la-consti-y-belenes/",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Valle de Tejeda",
+    "municipio": "Tlajomulco",
+    "categorias": [
+      "desabasto"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "LABCSA / El Occidental",
+    "fecha_reporte": "2026-05-09",
+    "descripcion": "Etapa 15 del fraccionamiento: fallas constantes de agua potable. Baja presion, en terceros niveles no sube el agua. Vecinos atribuyen el problema a nuevas construcciones.",
+    "fuente_url": "https://labcsa.org/2026/05/09/vecinos-de-valle-de-tejeda-denuncian-fallas-de-agua-y-luz-en-plena-ola-de-calor/",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "Valle de Loira",
+    "municipio": "Tlajomulco",
+    "categorias": [
+      "desabasto"
+    ],
+    "fuente_tipo": "prensa",
+    "fuente_nombre": "LABCSA / El Occidental",
+    "fecha_reporte": "2026-05-09",
+    "descripcion": "Habitantes reportaron que solo cae un hilito de agua y hay dias en que no sale ni una gota. Problemas de baja presion severa.",
+    "fuente_url": "https://labcsa.org/2026/05/09/vecinos-de-valle-de-tejeda-denuncian-fallas-de-agua-y-luz-en-plena-ola-de-calor/",
+    "nivel_confianza": "media"
+  },
+  {
+    "colonia": "El Batan",
+    "municipio": "Zapopan",
+    "categorias": [
+      "otro"
+    ],
+    "fuente_tipo": "ciudadano_sin_verificar",
+    "fuente_nombre": "Reporte ciudadano",
+    "fecha_reporte": "2026-07-25",
+    "descripcion": "Reporte de prueba para verificar visualizacion.",
+    "fuente_url": "",
+    "nivel_confianza": "baja"
+  }
+]

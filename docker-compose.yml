@@ -1,0 +1,21 @@
+# Base de datos LOCAL de desarrollo (PostGIS en localhost:5433).
+# Para producción usa docker-compose.prod.yml (ver docs/DEPLOY.md).
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: agua
+      POSTGRES_PASSWORD: agua
+      POSTGRES_DB: agua_zmg
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agua -d agua_zmg"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

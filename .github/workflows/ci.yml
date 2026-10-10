@@ -1,0 +1,127 @@
+# Integración continua de Agua ZMG.
+# Corre en cada push a main y en cada pull request. No despliega nada.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Si llega un push nuevo a la misma rama, se cancela la corrida anterior
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Tipos, lint, pruebas y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      # Misma imagen que docker-compose.yml: PostGIS 3.4 sobre Postgres 16
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: agua
+          POSTGRES_PASSWORD: agua
+          POSTGRES_DB: agua_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agua -d agua_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://agua:agua@localhost:5432/agua_ci
+      # Base aparte para las pruebas que escriben (p. ej. anti-abuso); se migra igual
+      TEST_DATABASE_URL: postgres://agua:agua@localhost:5432/agua_test
+      # Servidor Postgres de las pruebas (api y tlib crean/borran sus propias bases ahí); sin esto
+      # apuntarían al 5433 local de docker-compose y fallarían con ECONNREFUSED
+      TAPI_PG_BASE: postgres://agua:agua@localhost:5432
+      # Valores solo para CI; nunca son secretos reales
+      HASH_SALT: ci-sal-solo-para-pruebas-0123456789abcdef
+      ADMIN_TOKEN: ci-token-solo-para-pruebas
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Crear base de pruebas
+        working-directory: .
+        run: |
+          PGPASSWORD=agua psql -h localhost -U agua -d postgres -c "CREATE DATABASE agua_test"
+
+      # Se llama a tsx directo: `pnpm migrate` lee .env.local, que no existe en CI
+      - name: Migraciones (base de CI)
+        run: pnpm exec tsx scripts/migrate.ts
+
+      - name: Migraciones (base de pruebas)
+        run: DATABASE_URL="$TEST_DATABASE_URL" pnpm exec tsx scripts/migrate.ts
+
+      - name: Tipos (tsc)
+        # El build genera los tipos de rutas (.next/types); se corre después de `next typegen`
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      # Incluye los proyectos unit, api y tlib (librerías y scripts: migrador, purge, importadores)
+      - name: Pruebas (vitest)
+        run: pnpm exec vitest run --passWithNoTests
+
+      - name: Build
+        run: pnpm build
+
+      # Verifica que el modo standalone (el que usa Docker) arranca y que la base responde
+      - name: Prueba de humo del servidor standalone
+        run: |
+          cp -r public .next/standalone/public
+          mkdir -p .next/standalone/.next
+          cp -r .next/static .next/standalone/.next/static
+          PORT=3100 HOSTNAME=127.0.0.1 node .next/standalone/server.js > /tmp/server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:3100/api/salud && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:3100/api/salud | grep '"db":true'
+          curl -fsS http://127.0.0.1:3100/api/v1/resumen.csv | head -n 3
+          curl -fsSI http://127.0.0.1:3100/api/v1/colonias | grep -i 'access-control-allow-origin: \*'
+
+      - name: Registro del servidor (si algo falló)
+        if: failure()
+        run: cat /tmp/server.log || true
+
+  docker:
+    name: Imagen Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      # Solo construye (sin subir a ningún registro)
+      - name: Construir imagen de la app
+        run: docker build -f web/Dockerfile --target runner -t agua-zmg-web:ci .
+      - name: Construir imagen de migraciones
+        run: docker build -f web/Dockerfile --target migrate -t agua-zmg-migrate:ci .

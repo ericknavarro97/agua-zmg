@@ -1,0 +1,24 @@
+# Contexto de build = raíz del repo. Se deja fuera todo lo que no entra a la imagen.
+**/node_modules
+**/.next
+**/.turbo
+**/*.tsbuildinfo
+.git
+.github
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
+# Datos pesados y de investigación (data/raw pesa cientos de MB)
+data/
+docs/
+
+# Copiados por `pnpm copy:maplibre` dentro del build
+web/public/maplibre
+
+# Varios
+**/.DS_Store
+**/*.log
+coverage
