@@ -64,6 +64,8 @@ async function cargarEstilo(): Promise<{ estilo: StyleSpecification; respaldo: b
 }
 
 const NIVEL_ESTADO = ["coalesce", ["feature-state", "nivel"], 0] as const;
+// El resaltado al pasar el mouse se aplica en todas las capas de relleno (base, tramas y datos externos)
+const FUENTES_HOVER = ["colonias", "colonias-nivel", "colonias-externos"] as const;
 const COLORES_NIVEL = GRAVEDADES.flatMap((g) => [g.nivel, g.color]);
 
 export default function MapView(props: Props) {
@@ -119,10 +121,12 @@ export default function MapView(props: Props) {
           map.addSource("colonias-externos", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
           map.addSource("ubicacion", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
 
+          // Transparentes en reposo (se ven calles y contornos para ubicar la colonia); fuertes al pasar el mouse
+          const HOVER = ["boolean", ["feature-state", "hover"], false];
           const opacidad = (baja: unknown, resto: unknown) => [
             "case",
-            ["boolean", ["feature-state", "hover"], false], 0.85,
-            ["==", NIVEL_ESTADO, 0], 0.22,
+            HOVER, ["case", ["==", NIVEL_ESTADO, 0], 0.45, 0.82],
+            ["==", NIVEL_ESTADO, 0], 0.08,
             ["==", ["feature-state", "conf"], 1], baja,
             resto,
           ];
@@ -134,7 +138,7 @@ export default function MapView(props: Props) {
               source: "colonias",
               paint: {
                 "fill-color": ["match", NIVEL_ESTADO, ...COLORES_NIVEL, SIN_DATOS_COLOR] as never,
-                "fill-opacity": opacidad(0.4, 0.74) as never,
+                "fill-opacity": opacidad(0.2, 0.34) as never,
               },
             },
             primeraEtiqueta,
@@ -147,7 +151,7 @@ export default function MapView(props: Props) {
               source: "colonias-nivel",
               paint: {
                 "fill-pattern": ["match", ["get", "nivel"], 2, "patron-2", 3, "patron-3", 4, "patron-4", "patron-1"] as never,
-                "fill-opacity": ["interpolate", ["linear"], ["zoom"], 10.5, 0, 12.5, ["match", ["get", "conf"], "baja", 0.5, 0.9]] as never,
+                "fill-opacity": ["interpolate", ["linear"], ["zoom"], 10.5, 0, 12.5, ["case", HOVER, 0.9, ["match", ["get", "conf"], "baja", 0.3, 0.5]]] as never,
               },
             },
             primeraEtiqueta,
@@ -160,7 +164,7 @@ export default function MapView(props: Props) {
               source: "colonias-externos",
               paint: {
                 "fill-color": ["match", ["get", "nivel"], ...COLORES_NIVEL, SIN_DATOS_COLOR] as never,
-                "fill-opacity": 0.74,
+                "fill-opacity": ["case", HOVER, 0.85, 0.34] as never,
               },
             },
             primeraEtiqueta,
@@ -172,7 +176,7 @@ export default function MapView(props: Props) {
               source: "colonias-externos",
               paint: {
                 "fill-pattern": ["match", ["get", "nivel"], 2, "patron-2", 3, "patron-3", 4, "patron-4", "patron-1"] as never,
-                "fill-opacity": ["interpolate", ["linear"], ["zoom"], 10.5, 0, 12.5, 0.9] as never,
+                "fill-opacity": ["interpolate", ["linear"], ["zoom"], 10.5, 0, 12.5, ["case", HOVER, 0.9, 0.5]] as never,
               },
             },
             primeraEtiqueta,
@@ -222,7 +226,7 @@ export default function MapView(props: Props) {
           // Interacción
           let hover: number | null = null;
           const quitarHover = () => {
-            if (hover != null) map!.setFeatureState({ source: "colonias", id: hover }, { hover: false });
+            if (hover != null) for (const source of FUENTES_HOVER) map!.setFeatureState({ source, id: hover }, { hover: false });
             hover = null;
           };
           map.on("mousemove", "colonias-fill", (e: MapLayerMouseEvent) => {
@@ -231,7 +235,7 @@ export default function MapView(props: Props) {
             if (id == null || id === hover) return;
             quitarHover();
             hover = id;
-            map!.setFeatureState({ source: "colonias", id }, { hover: true });
+            for (const source of FUENTES_HOVER) map!.setFeatureState({ source, id }, { hover: true });
           });
           map.on("mouseleave", "colonias-fill", () => {
             map!.getCanvas().style.cursor = "";
