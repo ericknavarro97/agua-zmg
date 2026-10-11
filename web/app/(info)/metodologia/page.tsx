@@ -256,8 +256,9 @@ export default function Metodologia() {
           Ocultar es una decisión humana con motivo escrito.
         </li>
         <li>
-          El comentario libre se depura (teléfonos, correos y enlaces se enmascaran) y <strong>no se publica</strong> en ningún
-          lado.
+          El comentario libre se depura (teléfonos, correos y enlaces se enmascaran) y <strong>se muestra en la página de la
+          colonia</strong>, solo con el día y la gravedad, sin hora ni identificadores. El formulario lo avisa antes de enviar;
+          los comentarios anteriores a ese aviso nunca se publican. Un moderador puede retirar un comentario.
         </li>
         <li>
           Canal para impugnar un reporte o el nivel de una colonia:{" "}

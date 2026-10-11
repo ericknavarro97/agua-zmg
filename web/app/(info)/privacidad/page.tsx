@@ -58,7 +58,9 @@ export default function Privacidad() {
         </li>
         <li>
           Un <strong>comentario</strong>, solo si lo escribes. Antes de guardarlo se enmascaran teléfonos, correos y enlaces.
-          <strong> No se publica</strong> en ninguna parte del sitio. No escribas nombres ni direcciones.
+          <strong> Se muestra públicamente</strong> en la página de la colonia, solo con el día y la gravedad que elegiste, sin
+          tu nombre ni la hora. El formulario te lo avisa antes de enviar. Un moderador puede retirarlo. No escribas nombres ni
+          direcciones. Los comentarios enviados antes de este aviso nunca se publican.
         </li>
         <li>
           El tiempo que tardaste en llenar el formulario (una señal contra programas automáticos).

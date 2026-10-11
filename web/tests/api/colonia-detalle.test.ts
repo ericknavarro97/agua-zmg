@@ -40,13 +40,14 @@ describe("GET /api/colonias/[id]: validación", () => {
 });
 
 describe("GET /api/colonias/[id]: contrato", () => {
-  it("colonia sin reportes: n/n_huellas/score/nivel/confianza/ultimo = null, serie vacía, oficial vacío", async () => {
+  it("colonia sin reportes: n/n_huellas/score/nivel/confianza/ultimo = null, serie vacía, sin comentarios, oficial vacío", async () => {
     const c = await crearColonia({ nombre: "Del Fresno", municipio: "Guadalajara" });
     const res = await detalle(c);
     expect(res.status).toBe(200);
     expect(await json(res)).toEqual({
       id: c, nombre: "Del Fresno", municipio: "Guadalajara", fuente_geom: "ine_colonias",
       reportes: { n: null, n_huellas: null, score: null, nivel: null, confianza: null, ultimo: null, serie: [] },
+      comentarios: [],
       oficial: [],
     });
   });
@@ -85,20 +86,35 @@ describe("GET /api/colonias/[id]: contrato", () => {
     expect(d.reportes.n_huellas).toBe(s.n_huellas);
   });
 
-  it("antes del mínimo publicable NO se expone nada del conteo: n, n_huellas, ultimo null y serie vacía (como /api/v1)", async () => {
+  it("antes del mínimo publicable no hay agregados (n, n_huellas, score, nivel) pero sí la gráfica de reportes por día", async () => {
     const c = await crearColonia();
     await sembrarVecinos(c, 4, 2);
     const d = await json(await detalle(c));
-    expect(d.reportes).toEqual({ n: null, n_huellas: null, score: null, nivel: null, confianza: null, ultimo: null, serie: [] });
+    expect(d.reportes).toMatchObject({ n: null, n_huellas: null, score: null, nivel: null, confianza: null, ultimo: null });
+    expect(d.reportes.serie.reduce((a: number, p: { n: number }) => a + p.n, 0)).toBe(2);
   });
 
-  it("un reporte aceptado solo en una colonia vacía no se delata con su gravedad ni su día", async () => {
+  it("con un solo reporte la gráfica ya muestra el día, pero el nivel y los agregados siguen sin publicarse", async () => {
     const c = await crearColonia();
     await sembrar({ colonia: c, gravedad: 4, edadDias: 0.01 });
     const d = await json(await detalle(c));
     expect(d.reportes.n).toBeNull();
-    expect(d.reportes.serie).toEqual([]);
-    expect(JSON.stringify(d)).not.toMatch(/"gravedad"|"dia"/);
+    expect(d.reportes.nivel).toBeNull();
+    expect(d.reportes.serie).toHaveLength(1);
+    expect(d.reportes.serie[0].n).toBe(1);
+  });
+
+  it("comentarios: solo los que su autor aceptó mostrar, visibles y no sospechosos, con día y gravedad (sin hora)", async () => {
+    const c = await crearColonia();
+    await sembrar({ colonia: c, gravedad: 3, edadDias: 1, comentario: "sale café por las mañanas", comentarioPublico: true });
+    await sembrar({ colonia: c, gravedad: 2, edadDias: 1, comentario: "comentario escrito antes del aviso" }); // privado
+    await sembrar({ colonia: c, gravedad: 4, edadDias: 1, comentario: "oculto por un moderador", comentarioPublico: true, estado: "oculto" });
+    await sembrar({ colonia: c, gravedad: 4, edadDias: 1, comentario: "en revisión", comentarioPublico: true, estado: "revision" });
+    await sembrar({ colonia: c, gravedad: 4, edadDias: 1, comentario: "sospechoso", comentarioPublico: true, sospechoso: true });
+    await sembrar({ colonia: c, gravedad: 4, edadDias: 40, comentario: "muy viejo", comentarioPublico: true });
+    const d = await json(await detalle(c));
+    expect(d.comentarios).toEqual([{ dia: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), gravedad: 3, texto: "sale café por las mañanas" }]);
+    expect(JSON.stringify(d)).not.toMatch(/antes del aviso|moderador|en revisión|sospechoso|muy viejo|"huella"|red_hash/);
   });
 
   it("la serie solo incluye reportes visibles y no sospechosos de los últimos 30 días", async () => {

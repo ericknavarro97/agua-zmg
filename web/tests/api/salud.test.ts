@@ -22,7 +22,7 @@ describe("entorno de pruebas", () => {
 
   it("la base se migró desde cero con todas las migraciones", async () => {
     const { rows } = await db.query("SELECT nombre FROM schema_migrations ORDER BY nombre");
-    expect(rows.map((r) => r.nombre)).toEqual(["001_init.sql", "002_antiabuso.sql", "003_colonias_fuentes.sql", "004_mediciones_externas.sql", "005_indice_huella.sql", "006_quitar_demo.sql"]);
+    expect(rows.map((r) => r.nombre)).toEqual(["001_init.sql", "002_antiabuso.sql", "003_colonias_fuentes.sql", "004_mediciones_externas.sql", "005_indice_huella.sql", "006_quitar_demo.sql", "007_comentarios_publicos.sql"]);
   });
 });
 

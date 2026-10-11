@@ -90,9 +90,12 @@ describe("qué reportes cuentan", () => {
   });
   it("reportes rápidos se cuentan por tiempo_ms < rapidoMs", async () => {
     const c = await insertarColonia(bd.pool, "Lomas");
-    await insertarReporte(bd.pool, { colonia_id: c, huella: "a", red_hash: "r", red_sem: "s", tiempo_ms: PARAMS.rapidoMs - 1 });
-    await insertarReporte(bd.pool, { colonia_id: c, huella: "b", red_hash: "r", red_sem: "s", tiempo_ms: PARAMS.rapidoMs });
-    await insertarReporte(bd.pool, { colonia_id: c, huella: "c", red_hash: "r", red_sem: "s", tiempo_ms: null });
+    // Unos segundos en el pasado: con hace_horas 0 el reloj de Postgres (microsegundos) puede quedar por delante del de
+    // Node (milisegundos) y la consulta (creado_en <= ahora) dejaría fuera el último reporte, sobre todo en CI rápido.
+    const base = { colonia_id: c, red_hash: "r", red_sem: "s", hace_horas: 0.01 };
+    await insertarReporte(bd.pool, { ...base, huella: "a", tiempo_ms: PARAMS.rapidoMs - 1 });
+    await insertarReporte(bd.pool, { ...base, huella: "b", tiempo_ms: PARAMS.rapidoMs });
+    await insertarReporte(bd.pool, { ...base, huella: "c", tiempo_ms: null });
     const [g] = await cargarGrupos(bd.pool);
     expect(g.n).toBe(3);
     expect(g.nRapidos).toBe(1);

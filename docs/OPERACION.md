@@ -216,7 +216,7 @@ Quién modera, con qué turnos y con qué respaldo es una decisión humana pendi
 ### 6.1 Reglas
 
 - **Se oculta por cómo llegó el reporte, no por lo que dice.** Motivos válidos: ráfaga/automatización, spam, datos personales o contenido ilícito en el comentario, reporte duplicado. Un reporte incómodo, exagerado o con el que no coincidimos **no** es motivo.
-- El comentario libre **no se publica** en ninguna parte del sitio. Se depura al recibirlo (teléfonos, correos, enlaces y @usuarios se enmascaran) y se borra a los 30 días con la tarea de retención (§4).
+- El comentario libre **se muestra en la página de la colonia** (solo día y gravedad, sin hora ni identificadores) cuando se envía después del aviso del formulario (columna `reportes.comentario_publico`, migración 007); los anteriores nunca se publican. Se depura al recibirlo (teléfonos, correos, enlaces y @usuarios se enmascaran), un reporte oculto o en revisión retira su comentario, y se borra a los 30 días con la tarea de retención (§4). Moderación: `/admin` muestra todos los comentarios y permite borrarlos. Los nombres y direcciones NO se detectan automáticamente: revisa `/admin` con frecuencia.
 - Acciones: `degradar` (revisión), `ocultar` (decisión humana) y `restaurar`. Todas exigen motivo de al menos 10 caracteres y quedan en la bitácora.
 - Sin reportes **no** significa agua buena. Moderar a la baja una colonia legítima daña a quienes más lo necesitan.
 

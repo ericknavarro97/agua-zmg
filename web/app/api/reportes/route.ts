@@ -78,11 +78,11 @@ async function guardar(r: Nuevo): Promise<"creado" | "actualizado" | "muy_pronto
     // no cambia el estado de revisión y no se puede martillar (mínimo 30 s desde la última actualización).
     const res = await c.query<{ insertado: boolean }>(
       `INSERT INTO reportes AS x (colonia_id, gravedad, sintomas, comentario, comentario_hash, huella, dia,
-                                  red_hash, red_sem, ua_familia, tiempo_ms, canal, estado, sospechoso, motivo)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+                                  red_hash, red_sem, ua_familia, tiempo_ms, canal, estado, sospechoso, motivo, comentario_publico)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
        ON CONFLICT (colonia_id, huella, dia) DO UPDATE
          SET gravedad = EXCLUDED.gravedad, sintomas = EXCLUDED.sintomas, comentario = EXCLUDED.comentario,
-             comentario_hash = EXCLUDED.comentario_hash, tiempo_ms = EXCLUDED.tiempo_ms,
+             comentario_hash = EXCLUDED.comentario_hash, comentario_publico = EXCLUDED.comentario_publico, tiempo_ms = EXCLUDED.tiempo_ms,
              sospechoso = EXCLUDED.sospechoso, actualizado_en = now(),
              motivo = CASE WHEN x.estado = 'visible' THEN (CASE WHEN EXCLUDED.sospechoso THEN EXCLUDED.motivo END) ELSE x.motivo END
        WHERE x.estado <> 'oculto' AND now() - COALESCE(x.actualizado_en, x.creado_en) > interval '${REENVIO_MIN_S} seconds'
@@ -90,6 +90,8 @@ async function guardar(r: Nuevo): Promise<"creado" | "actualizado" | "muy_pronto
       [
         r.coloniaId, r.gravedad, r.sintomas, r.comentario, r.comentarioHash, r.huella, r.dia,
         r.redHash, r.redSem, r.uaFamilia, r.tiempoMs, r.canal, r.estado, r.sospechoso, r.motivo,
+        // El formulario avisa que el comentario se muestra en la colonia (ver FormularioReporte)
+        r.comentario !== null,
       ],
     );
     if (!res.rows[0]) {

@@ -17,6 +17,7 @@ export type FilaReporte = {
   motivo: string | null;
   canal: string;
   tiempo_ms: number | null;
+  comentario_publico: boolean;
 };
 
 const fecha = (s: string) =>
@@ -150,7 +151,14 @@ export default function TablaReportes({ reportes, total }: { reportes: FilaRepor
                   {r.motivo && <span className="block text-xs text-slate-600">{r.motivo}</span>}
                 </td>
                 <td className="p-2 text-slate-700">{r.sintomas.length ? r.sintomas.join(", ") : "—"}</td>
-                <td className="min-w-48 max-w-xs p-2 text-slate-700">{r.comentario ? <>&ldquo;{r.comentario}&rdquo;</> : <span className="text-slate-400">—</span>}</td>
+                <td className="min-w-48 max-w-xs p-2 text-slate-700">{r.comentario ? (
+                    <>
+                      &ldquo;{r.comentario}&rdquo;
+                      <span className="block text-xs text-slate-600">{r.comentario_publico && r.estado === "visible" && !r.sospechoso ? "Público en la colonia" : "No público"}</span>
+                    </>
+                  ) : (
+                    <span className="text-slate-400">—</span>
+                  )}</td>
                 <td className="whitespace-nowrap p-2 text-xs text-slate-600">
                   {r.canal}
                   {r.tiempo_ms != null ? ` · ${(r.tiempo_ms / 1000).toFixed(1)} s` : ""}

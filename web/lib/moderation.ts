@@ -313,10 +313,11 @@ export type ReporteAdmin = {
   motivo: string | null;
   canal: string;
   tiempo_ms: number | null;
+  comentario_publico: boolean;
 };
 
 const COLS_REPORTE = `r.id::int AS id, r.colonia_id, c.nombre AS colonia, c.municipio, r.gravedad::int AS gravedad,
-  r.sintomas, r.comentario, r.creado_en, r.estado, r.sospechoso, r.motivo, r.canal, r.tiempo_ms`;
+  r.sintomas, r.comentario, r.creado_en, r.estado, r.sospechoso, r.motivo, r.canal, r.tiempo_ms, r.comentario_publico`;
 
 export async function resumenModeracion(db: Db) {
   const [estados, sosp, dia, vencidos] = await Promise.all([

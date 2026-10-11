@@ -206,6 +206,7 @@ export default function FormularioReporte({
           className="w-full rounded-lg border border-slate-400 p-2 text-base outline-none placeholder:text-slate-600 focus:border-sky-700"
         />
         <p id="comentario-ayuda" className="mt-1 text-xs text-slate-600">
+          <strong>Tu comentario se mostrará públicamente</strong> en la página de esta colonia, solo con el día y sin tu nombre.
           No escribas nombres, teléfonos ni tu dirección. {comentario.length}/500
         </p>
       </div>

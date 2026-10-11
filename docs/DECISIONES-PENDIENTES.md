@@ -13,7 +13,7 @@ Fecha de este documento: 2026-10-08. Las referencias `[§…]` apuntan a [`resea
 | 3 | Dónde se aloja | Sí |
 | 4 | Licencias de código y de datos | No, pero la API declara una **provisional** |
 | 5 | Proveedor del mapa base | No (hay una opción por defecto) |
-| 6 | Qué se hace con el comentario libre | No (hoy no se publica) |
+| 6 | Qué se hace con el comentario libre | Decidido: se muestra en la colonia (con aviso en el formulario); falta revisión legal del aviso |
 | 7 | Cuánto tiempo se conservan los datos | No (hay un valor por defecto) |
 | 8 | Aval de un profesional de salud para la guía "Qué hacer" | **Sí**, o aviso visible |
 | 9 | Quién modera y el contacto público / apelación | **Sí** |
@@ -93,7 +93,7 @@ Fecha de este documento: 2026-10-08. Las referencias `[§…]` apuntan a [`resea
 
 ## 6. Qué se hace con el comentario libre
 
-**Estado:** el comentario (hasta 500 caracteres) se depura al recibirlo (teléfonos, correos, enlaces y @usuarios enmascarados) y **no se publica** en ningún lado; se borra a los 30 días con la tarea de retención.
+**Estado:** el comentario (hasta 500 caracteres) se depura al recibirlo (teléfonos, correos, enlaces y @usuarios enmascarados) y **se muestra en la página de la colonia** (solo día y gravedad; solo los enviados después del aviso del formulario, `comentario_publico`); se borra a los 30 días con la tarea de retención.
 
 **Decisión:** ¿se publicará algún día?
 

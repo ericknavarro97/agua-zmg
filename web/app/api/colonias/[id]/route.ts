@@ -6,7 +6,7 @@ import { type FilaOficial, aContratoOficial } from "@/lib/oficial";
 const CACHE = "public, max-age=30, s-maxage=60, stale-while-revalidate=300, stale-if-error=3600";
 const SIN_CACHE = "no-store";
 
-// Detalle de una colonia: reportes ciudadanos (agregados, sin huellas ni comentarios) + datos externos vinculados.
+// Detalle de una colonia: reportes ciudadanos (agregados, sin huellas) + comentarios públicos + datos externos vinculados.
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: idTexto } = await ctx.params;
   if (!/^\d{1,9}$/.test(idTexto)) {
@@ -21,8 +21,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   if (!col.rowCount) return jsonConEtag(req, { error: "colonia no encontrada" }, SIN_CACHE, 404);
   const c = col.rows[0] as { id: number; nombre: string; municipio: string | null; fuente_geom: string };
 
-  // Solo hay conteos y serie si la colonia alcanza el mínimo publicable (igual que /api/v1): por debajo, exponer
-  // "1 reporte" con su gravedad y su día delataría un envío individual y serviría de oráculo a quien prueba filtros.
+  // Los agregados (n, n_huellas, score, nivel) solo se publican si la colonia alcanza el mínimo publicable (igual que
+  // /api/v1). La serie diaria y los comentarios públicos se muestran con cualquier cantidad de reportes.
   const [scores, oficial] = await Promise.all([
     scoresConCache(pool),
     pool.query(
@@ -42,10 +42,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   ]);
   const s = scores.find((x) => x.id === id);
 
-  // Mismo criterio que lib/aggregation.ts: solo visibles y no sospechosos, ventana de VENTANA_DIAS
-  const [resumen, serie] = s
-    ? await Promise.all([
-        pool.query(
+  // Mismo criterio que lib/aggregation.ts: solo visibles y no sospechosos, ventana de VENTANA_DIAS.
+  // Los agregados (n, huellas, score) solo existen si la colonia alcanza el mínimo publicable; la gráfica de reportes
+  // por día y los comentarios públicos se muestran con cualquier cantidad de reportes.
+  const [resumen, serie, comentarios] = await Promise.all([
+    s
+      ? pool.query(
           `SELECT count(*)::int AS n,
                   (count(DISTINCT huella) + count(*) FILTER (WHERE huella IS NULL))::int AS n_huellas,
                   max(creado_en) AS ultimo
@@ -53,19 +55,31 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
             WHERE colonia_id = $1 AND estado = 'visible' AND NOT sospechoso
               AND creado_en > now() - make_interval(days => $2::int)`,
           [id, PARAMS.ventanaDias],
-        ),
-        // Solo días con reportes (el cliente rellena los vacíos). El score diario es la media simple de ese día.
-        pool.query(
-          `SELECT to_char((creado_en AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS dia,
-                  count(*)::int AS n, round(avg(gravedad)::numeric, 2)::float8 AS score
-             FROM reportes
-            WHERE colonia_id = $1 AND estado = 'visible' AND NOT sospechoso
-              AND creado_en > now() - interval '30 days'
-            GROUP BY 1 ORDER BY 1`,
-          [id],
-        ),
-      ])
-    : [null, null];
+        )
+      : Promise.resolve(null),
+    // Solo días con reportes (el cliente rellena los vacíos). El score diario es la media simple de ese día.
+    pool.query(
+      `SELECT to_char((creado_en AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS dia,
+              count(*)::int AS n, round(avg(gravedad)::numeric, 2)::float8 AS score
+         FROM reportes
+        WHERE colonia_id = $1 AND estado = 'visible' AND NOT sospechoso
+          AND creado_en > now() - interval '30 days'
+        GROUP BY 1 ORDER BY 1`,
+      [id],
+    ),
+    // Comentarios que su autor aceptó mostrar (el formulario lo avisa). Solo el día, sin hora ni identificadores.
+    // Un reporte oculto o en revisión también retira su comentario.
+    pool.query(
+      `SELECT to_char((creado_en AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS dia,
+              gravedad::int AS gravedad, comentario AS texto
+         FROM reportes
+        WHERE colonia_id = $1 AND estado = 'visible' AND NOT sospechoso
+          AND comentario IS NOT NULL AND comentario_publico
+          AND creado_en > now() - interval '30 days'
+        ORDER BY creado_en DESC LIMIT 20`,
+      [id],
+    ),
+  ]);
 
   const r = resumen?.rows[0];
   const cuerpo = {
@@ -80,8 +94,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       nivel: s ? s.nivel : null,
       confianza: s ? s.confianza : null,
       ultimo: s && r?.ultimo ? new Date(r.ultimo).toISOString() : null,
-      serie: (serie?.rows ?? []) as { dia: string; n: number; score: number }[],
+      serie: serie.rows as { dia: string; n: number; score: number }[],
     },
+    comentarios: comentarios.rows as { dia: string; gravedad: number; texto: string }[],
     oficial: oficial.rows.map((o) => aContratoOficial(o as FilaOficial)),
   };
   return jsonConEtag(req, cuerpo, CACHE);

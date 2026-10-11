@@ -149,7 +149,8 @@ describe("migrate.ts sobre una base antigua con datos", () => {
     const r = migrar(b, s);
     expect(r.status, r.stderr).toBe(0);
     const aplicadas = r.stdout.split("\n").filter((l) => l.startsWith("aplicada ")).map((l) => l.slice(9).trim());
-    expect(aplicadas).toEqual([f006]);
+    // 006 y las posteriores (007: comentario_publico); lo que importa aquí es que 006 sí se aplicó
+    expect(aplicadas[0]).toBe(f006);
 
     // colonias demo y sus reportes desaparecen; las reales (y los suyos) se conservan intactos
     expect((await q<{ nombre: string }>(b, "SELECT nombre FROM colonias ORDER BY nombre")).map((x) => x.nombre)).toEqual(["Real A", "Real B"]);

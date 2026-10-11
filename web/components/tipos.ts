@@ -40,6 +40,9 @@ export type DatoOficial = {
 /** Colonia con datos externos vinculados (marca del mapa, no es un nivel de gravedad) */
 export type Externo = { id: number; n: number; medicion: boolean };
 
+/** Comentario que su autor aceptó mostrar (solo el día, sin hora ni identificadores) */
+export type ComentarioPublico = { dia: string; gravedad: number; texto: string };
+
 export type PuntoSerie = { dia: string; n: number; score: number | null };
 
 export type DetalleColonia = {
@@ -57,5 +60,6 @@ export type DetalleColonia = {
     ultimo: string | null;
     serie: PuntoSerie[];
   };
+  comentarios?: ComentarioPublico[];
   oficial: DatoOficial[];
 };

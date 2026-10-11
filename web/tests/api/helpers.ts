@@ -59,6 +59,8 @@ export type SemillaReporte = {
   sospechoso?: boolean;
   tiempoMs?: number | null;
   comentario?: string | null;
+  /** El autor aceptó mostrar el comentario (por defecto, no) */
+  comentarioPublico?: boolean;
 };
 
 let serie = 0;
@@ -70,13 +72,13 @@ export async function sembrar(r: SemillaReporte): Promise<void> {
   const red = r.red === undefined ? `red-${k}` : r.red;
   await db.query(
     `INSERT INTO reportes (colonia_id, gravedad, huella, red_hash, red_sem, estado, sospechoso, tiempo_ms, comentario,
-                           creado_en, dia)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, now() - make_interval(secs => $10::float8),
+                           comentario_publico, creado_en, dia)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$11, now() - make_interval(secs => $10::float8),
              ((now() - make_interval(secs => $10::float8)) AT TIME ZONE 'America/Mexico_City')::date)`,
     [
       r.colonia, r.gravedad, huella, red, r.redSem === undefined ? red : r.redSem,
       r.estado ?? "visible", r.sospechoso ?? false, r.tiempoMs === undefined ? 20000 : r.tiempoMs,
-      r.comentario ?? null, edad * 86400,
+      r.comentario ?? null, edad * 86400, r.comentarioPublico ?? false,
     ],
   );
 }

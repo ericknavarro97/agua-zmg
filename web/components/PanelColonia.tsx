@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Compartir from "./Compartir";
+import ComentariosVecinos from "./ComentariosVecinos";
 import DatosOficiales from "./DatosOficiales";
 import FormularioReporte from "./FormularioReporte";
 import { CONFIANZA, ChipNivel, etiquetaNivel, haceCuanto, nivelDeScore } from "./niveles";
@@ -185,13 +186,13 @@ export default function PanelColonia({
               </button>
             </p>
           )}
-          {rep && nivel && <Sparkline serie={rep.serie} />}
-          {rep && !nivel && (
-            <p className="mt-2 text-xs text-slate-700">
-              El historial se muestra cuando la colonia reúne reportes suficientes de vecinos distintos.
-            </p>
+          {rep && rep.serie.length > 0 && <Sparkline serie={rep.serie} />}
+          {rep && rep.serie.length === 0 && (
+            <p className="mt-2 text-xs text-slate-700">Aún no hay reportes de vecinos en los últimos 30 días.</p>
           )}
         </section>
+
+        {detalle?.comentarios && <ComentariosVecinos comentarios={detalle.comentarios} />}
 
         {detalle && <DatosOficiales datos={detalle.oficial} />}
 
