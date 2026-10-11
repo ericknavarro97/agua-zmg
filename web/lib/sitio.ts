@@ -9,6 +9,9 @@ const correo = (n: string) => {
   return v && /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/.test(v) ? v : null;
 };
 
+/** Repositorio público del proyecto */
+export const REPO_URL = "https://github.com/ericknavarro97/agua-zmg";
+
 export const SITIO = {
   /** Correo público de contacto, moderación y apelación */
   contactoEmail: correo("CONTACTO_EMAIL"),

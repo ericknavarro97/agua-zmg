@@ -1,4 +1,4 @@
-import { SITIO } from "@/lib/sitio";
+import { REPO_URL, SITIO } from "@/lib/sitio";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Aviso, Pagina } from "@/components/Info";
@@ -76,7 +76,11 @@ export default function Acerca() {
           corte.
         </li>
         <li>
-          <strong>Código:</strong> el proyecto está pensado para publicarse como software abierto; la licencia aún no está
+          <strong>Código:</strong> está publicado en{" "}
+          <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+            GitHub<span className="sr-only"> (abre en otra pestaña)</span>
+          </a>
+          . Puedes abrir un <em>issue</em> ahí para reportar un error o proponer una mejora. La licencia aún no está
           decidida.
         </li>
       </ul>
@@ -86,7 +90,11 @@ export default function Acerca() {
         <p>
           Para dudas, errores en un dato, moderación o para impugnar un reporte o el nivel de una colonia, escribe a{" "}
           <a href={`mailto:${SITIO.contactoEmail}`}>{SITIO.contactoEmail}</a>. Si el error está en un dato de otra fuente,
-          repórtalo también a la fuente original citada.
+          repórtalo también a la fuente original citada. También puedes abrir un <em>issue</em> en{" "}
+          <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+            GitHub<span className="sr-only"> (abre en otra pestaña)</span>
+          </a>
+          .
         </p>
       ) : (
         <Aviso tono="alerta" titulo="Canal de contacto: aún por definir">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { REPO_URL } from "@/lib/sitio";
 
 /** Pie con el aviso permanente de que esto no es información oficial */
 export default function PieSitio() {
@@ -14,6 +15,11 @@ export default function PieSitio() {
           <li><Link href="/datos" className="inline-block py-1 underline">Datos</Link></li>
           <li><Link href="/privacidad" className="inline-block py-1 underline">Privacidad</Link></li>
           <li><Link href="/acerca" className="inline-block py-1 underline">Acerca de</Link></li>
+          <li>
+            <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="inline-block py-1 underline">
+              Código<span className="sr-only"> (GitHub, abre en otra pestaña)</span>
+            </a>
+          </li>
         </ul>
       </div>
     </footer>
