@@ -58,10 +58,13 @@ export default function FormularioReporte({
   coloniaId,
   nombre,
   onReportado,
+  enfocar = false,
 }: {
   coloniaId: number;
   nombre: string;
   onReportado: () => void;
+  /** Llevar el foco al título al montarse (cuando la persona pidió reportar) */
+  enfocar?: boolean;
 }) {
   const [gravedad, setGravedad] = useState<number | null>(null);
   const [sintomas, setSintomas] = useState<string[]>([]);
@@ -72,9 +75,14 @@ export default function FormularioReporte({
   const [hoyYa, setHoyYa] = useState(() => yaReporto(coloniaId)); // el formulario solo se monta en el navegador, tras una acción
   const abierto = useRef(0);
 
+  const tituloForm = useRef<HTMLHeadingElement>(null);
+
   useEffect(() => {
     abierto.current = Date.now(); // para tiempo_ms
   }, [coloniaId]);
+  useEffect(() => {
+    if (enfocar) tituloForm.current?.focus({ preventScroll: true });
+  }, [enfocar]);
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -114,7 +122,7 @@ export default function FormularioReporte({
 
   if (estado === "ok" || estado === "actualizado") {
     return (
-      <div role="status" className="mt-5 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-950 ring-1 ring-emerald-300">
+      <div role="status" className="mt-4 rounded-xl bg-[#e2f1e7] p-3.5 text-sm text-[#0f3b22]">
         <p className="font-semibold">
           {estado === "ok" ? "¡Gracias! Recibimos tu reporte." : "Listo, actualizamos tu reporte de hoy."}
         </p>
@@ -127,17 +135,17 @@ export default function FormularioReporte({
   }
 
   return (
-    <form onSubmit={enviar} className="mt-5 space-y-4" aria-labelledby="form-t" noValidate>
-      <h3 id="form-t" tabIndex={-1} className="text-base font-bold outline-none">Reporta el agua en {nombre}</h3>
+    <form onSubmit={enviar} className="mt-4 space-y-4" aria-labelledby="form-t" noValidate>
+      <h3 ref={tituloForm} id="form-t" tabIndex={-1} className="text-lg font-bold outline-none">Reporta el agua en {nombre}</h3>
       {hoyYa && (
-        <p className="rounded-lg bg-sky-50 p-2 text-xs text-sky-950 ring-1 ring-sky-200">
+        <p className="rounded-xl bg-[#e3edf3] p-2.5 text-xs text-tinta">
           Hoy ya enviaste un reporte de esta colonia desde este navegador. Si envías otro, actualiza el de hoy en lugar de sumar uno nuevo.
         </p>
       )}
 
       <fieldset>
         <legend className="text-sm font-semibold">¿Cómo llega el agua a tu casa hoy?</legend>
-        <p className="mb-2 text-xs text-slate-700">
+        <p className="mb-2 text-xs text-[#3b4f5c]">
           Elige según cómo se ve y huele. Si solo falta agua o hay poca presión, márcalo abajo en «Sin agua / baja presión» y
           elige el nivel de lo que ves cuando sí llega. Ningún nivel significa que el agua sea segura para beber.
         </p>
@@ -145,8 +153,8 @@ export default function FormularioReporte({
           {GRAVEDADES.map((g) => (
             <label
               key={g.nivel}
-              className={`flex cursor-pointer items-center gap-3 rounded-lg border-2 p-2.5 text-sm has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-sky-700 ${
-                gravedad === g.nivel ? "border-slate-900 bg-slate-50" : "border-slate-200"
+              className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 bg-white p-2.5 text-sm has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-sky-700 ${
+                gravedad === g.nivel ? "border-tinta" : "border-borde hover:border-[#b9c6cf]"
               }`}
             >
               <input
@@ -160,9 +168,9 @@ export default function FormularioReporte({
               <Muestra nivel={g.nivel} grande />
               <span>
                 <strong>{g.etiqueta}</strong>
-                <span className="block text-xs text-slate-700">{g.detalle}</span>
+                <span className="block text-xs text-[#3b4f5c]">{g.detalle}</span>
               </span>
-              {gravedad === g.nivel && <span className="ml-auto text-xs font-semibold">Elegido</span>}
+              {gravedad === g.nivel && <span className="mono-etiqueta ml-auto !text-[0.6875rem]">Elegido</span>}
             </label>
           ))}
         </div>
@@ -180,7 +188,7 @@ export default function FormularioReporte({
                 aria-pressed={activo}
                 onClick={() => setSintomas(activo ? sintomas.filter((x) => x !== s) : [...sintomas, s])}
                 className={`min-h-9 rounded-full border px-3 py-1 text-sm ${
-                  activo ? "border-sky-800 bg-sky-800 text-white" : "border-slate-400 bg-white text-slate-800"
+                  activo ? "border-tinta bg-tinta text-white" : "border-[#b9c6cf] bg-white text-tinta hover:border-tinta"
                 }`}
               >
                 {activo ? "✓ " : ""}
@@ -203,9 +211,9 @@ export default function FormularioReporte({
           rows={2}
           placeholder="Por ejemplo: sale café por las mañanas"
           aria-describedby="comentario-ayuda"
-          className="w-full rounded-lg border border-slate-400 p-2 text-base outline-none placeholder:text-slate-600 focus:border-sky-700"
+          className="w-full rounded-xl border border-[#b9c6cf] bg-white p-2.5 text-base outline-none placeholder:text-texto-tenue focus:border-tinta"
         />
-        <p id="comentario-ayuda" className="mt-1 text-xs text-slate-600">
+        <p id="comentario-ayuda" className="mt-1 text-xs text-texto-tenue">
           <strong>Tu comentario se mostrará públicamente</strong> en la página de esta colonia, solo con el día y sin tu nombre.
           No escribas nombres, teléfonos ni tu dirección. {comentario.length}/500
         </p>
@@ -228,7 +236,7 @@ export default function FormularioReporte({
 
       <div aria-live="assertive">
         {estado === "error" && (
-          <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-950 ring-1 ring-red-300">
+          <p role="alert" className="rounded-xl bg-[#f6e0e4] p-3 text-sm text-[#4a0f22]">
             {mensaje}
           </p>
         )}
@@ -237,14 +245,14 @@ export default function FormularioReporte({
       <button
         type="submit"
         disabled={!gravedad || estado === "enviando"}
-        className="min-h-12 w-full rounded-lg bg-sky-800 px-4 py-3 text-base font-semibold text-white hover:bg-sky-900 disabled:opacity-50"
+        className="min-h-12 w-full rounded-[15px] bg-tinta px-4 py-3 text-base font-bold text-white hover:bg-[#13334a] disabled:bg-[#9fb3c2] disabled:text-tinta"
       >
         {estado === "enviando" ? "Enviando…" : gravedad ? "Enviar mi reporte" : "Elige cómo llega el agua para enviar"}
       </button>
-      <p className="text-xs leading-relaxed text-slate-600">
+      <p className="text-xs leading-relaxed text-texto-tenue">
         Sin cuenta ni nombre. No guardamos tu IP ni tu ubicación. Para evitar reportes repetidos guardamos una huella diaria
         (un código que no permite saber quién eres) hasta por 30 días. Un reporte por colonia al día.{" "}
-        <Link href="/privacidad" className="text-sky-800 underline">Aviso de privacidad</Link>.
+        <Link href="/privacidad" className="text-marca underline">Aviso de privacidad</Link>.
       </p>
     </form>
   );

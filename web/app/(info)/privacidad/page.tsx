@@ -1,7 +1,7 @@
 import { SITIO, hayResponsable } from "@/lib/sitio";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Aviso, Indice, Pagina } from "@/components/Info";
+import { Aviso, Pagina } from "@/components/Info";
 
 export const metadata: Metadata = {
   title: "Aviso de privacidad",
@@ -22,6 +22,8 @@ const INDICE = [
 export default function Privacidad() {
   return (
     <Pagina
+      etiqueta="Privacidad · Versión 0.1"
+      indice={INDICE}
       titulo="Aviso de privacidad"
       resumen="Versión simplificada. Aquí decimos con precisión qué guarda el sistema, no lo que sería más cómodo decir."
     >
@@ -34,7 +36,6 @@ export default function Privacidad() {
           </p>
         </Aviso>
       )}
-      <Indice items={INDICE} />
 
       <h2 id="responsable">Quién es responsable</h2>
       {hayResponsable() ? (

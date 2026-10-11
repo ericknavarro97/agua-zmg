@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Aviso, Indice, Pagina } from "@/components/Info";
+import { Aviso, Pagina } from "@/components/Info";
 import OrigenSitio from "@/components/OrigenSitio";
 import { LICENCIA } from "@/app/api/v1/_lib/comun";
 
@@ -25,10 +25,11 @@ const INDICE = [
 export default function Datos() {
   return (
     <Pagina
+      etiqueta="Datos abiertos · API"
+      indice={INDICE}
       titulo="Datos abiertos y API"
       resumen="Los resultados del mapa están disponibles para medios, organizaciones, investigadores y otras aplicaciones. Solo agregados por colonia: nunca identificadores personales."
     >
-      <Indice items={INDICE} />
 
       <Aviso tono="alerta" titulo="Qué significan estos datos">
         <p>
@@ -97,6 +98,7 @@ export default function Datos() {
         Sin llaves ni registro. CORS abierto. Solo <code>GET</code>. Los datos pueden tener unos minutos de retraso (caché):
         no consultes más seguido que cada 60 segundos.
       </p>
+      <div className="tabla">
       <table>
         <thead>
           <tr>
@@ -122,6 +124,7 @@ export default function Datos() {
           </tr>
         </tbody>
       </table>
+      </div>
       <pre>
         <code>
           {"curl -s \""}
@@ -131,6 +134,7 @@ export default function Datos() {
       </pre>
 
       <h2 id="campos">Qué significa cada campo</h2>
+      <div className="tabla">
       <table>
         <thead>
           <tr>
@@ -148,6 +152,7 @@ export default function Datos() {
           <tr><td><code>fuente_geom</code></td><td>Procedencia del polígono de la colonia.</td></tr>
         </tbody>
       </table>
+      </div>
 
       <h2 id="uso">Uso responsable</h2>
       <ul>

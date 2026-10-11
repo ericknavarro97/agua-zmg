@@ -356,15 +356,15 @@ export default function MapView(props: Props) {
     m.fitBounds(
       [[foco.bbox[0], foco.bbox[1]], [foco.bbox[2], foco.bbox[3]]],
       {
-        // Con panel abierto se reserva su espacio (hoja inferior en móvil, tarjeta lateral en escritorio);
-        // sin panel, solo el de la tarjeta superior y la leyenda
+        // Se reserva el espacio de lo que flota encima: la navegación arriba, el dock abajo (crece con la ficha
+        // de la colonia) y, en escritorio, la leyenda a la derecha
         padding: movil
           ? foco.conPanel
-            ? { top: 120, bottom: Math.round(alto * 0.5), left: 24, right: 24 }
-            : { top: 190, bottom: 100, left: 16, right: 16 }
+            ? { top: 80, bottom: Math.round(alto * 0.55), left: 24, right: 24 }
+            : { top: 110, bottom: 210, left: 16, right: 16 }
           : foco.conPanel
-            ? { top: 40, bottom: 40, left: 40, right: 440 }
-            : { top: 40, bottom: 40, left: 400, right: 60 },
+            ? { top: 90, bottom: Math.min(360, Math.round(alto * 0.5)), left: 60, right: 220 }
+            : { top: 90, bottom: 140, left: 60, right: 220 },
         maxZoom: foco.zoomMax ?? 15,
         animate: !reducir,
         duration: 700,

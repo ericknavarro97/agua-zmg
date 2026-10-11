@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   buscarColoniasConTotal, coloniaEnPunto, coloniasCercanas, construirIndice, unirBbox,
   type Bbox,
@@ -9,6 +9,7 @@ import {
 import Leyenda from "./Leyenda";
 import ListaColonias from "./ListaColonias";
 import MapView, { type EstadoMapa, type Foco } from "./MapView";
+import NavPrincipal from "./NavPrincipal";
 import { etiquetaNivel } from "./niveles";
 import PanelColonia from "./PanelColonia";
 import type { Externo, FeatureColonia, Geo, Score } from "./tipos";
@@ -61,15 +62,22 @@ export default function AguaApp() {
   const [mapaRespaldo, setMapaRespaldo] = useState(false);
   const [activo, setActivo] = useState(-1);
   const nonce = useRef(0);
+  // La persona tocó «Reportar» antes de elegir colonia: al elegirla, se abre directo el formulario
+  const [quiereReportar, setQuiereReportar] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
-  const tarjeta = useRef<HTMLDivElement>(null);
+  const dock = useRef<HTMLElement>(null);
+  const campoBusqueda = useRef<HTMLInputElement>(null);
 
-  // Altura real de la tarjeta superior -> variable CSS que usa la lista en móvil para no quedar tapada
+  // Altura real del dock -> variable CSS: la lista y los controles del mapa en móvil no quedan tapados
   useEffect(() => {
-    const el = tarjeta.current;
+    const el = dock.current;
     const r = raiz.current;
     if (!el || !r || typeof ResizeObserver === "undefined") return;
-    const medir = () => r.style.setProperty("--alto-tarjeta", `${el.offsetHeight}px`);
+    const medir = () => {
+      r.style.setProperty("--alto-dock", `${el.offsetHeight}px`);
+      // Dock casi a pantalla completa (hoja abierta en móvil): los controles del mapa no caben encima
+      r.toggleAttribute("data-dock-alto", el.offsetHeight > r.offsetHeight * 0.6);
+    };
     medir();
     const ro = new ResizeObserver(medir);
     ro.observe(el);
@@ -222,8 +230,15 @@ export default function AguaApp() {
     [porId, indice, enfocar, escribirUrl, scores],
   );
 
+  // La intención de reportar solo aplica a la primera colonia que se elija después
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (sel != null) setQuiereReportar(false);
+  }, [sel]);
+
   const cerrar = useCallback(() => {
     setSelElegida(null);
+    setQuiereReportar(false);
     escribirUrl(null);
   }, [escribirUrl]);
 
@@ -331,11 +346,231 @@ export default function AguaApp() {
           ? "Todavía no hay colonias cargadas en esta instalación."
           : "";
 
-  const btnBase =
-    "inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-medium";
+
+  function pedirReporte() {
+    // Para reportar hace falta saber de qué colonia: se busca primero y el formulario se abre al elegirla
+    setQuiereReportar(true);
+    setMsgUbicacion({ tipo: "info", texto: "Primero elige tu colonia: escribe su nombre o usa tu ubicación." });
+    campoBusqueda.current?.focus();
+  }
+
+  const accionDock = "flex shrink-0 items-center justify-center rounded-[15px] bg-white/[0.08] text-white hover:bg-white/15";
+  const pildora =
+    "pointer-events-auto inline-flex h-11 items-center rounded-full bg-white px-4 text-sm text-tinta shadow-[0_4px_16px_rgba(11,34,51,0.16)] md:h-[2.875rem]";
+
+  // Resumen de arriba: corto a la vista; completo (con la condición de confianza) para lectores de pantalla
+  const resumenCompleto =
+    resumen.conNivel === 0
+      ? "Todavía no hay colonias con nivel publicado."
+      : `${resumen.conNivel} ${resumen.conNivel === 1 ? "colonia con nivel publicado" : "colonias con nivel publicado"}; ${resumen.afectadas} en nivel moderado o más con confianza media o alta.`;
+
+  // Avisos de esta pantalla, todos en un solo lugar: arriba dentro del dock
+  const avisos: { clave: string; contenido: ReactNode; tipo: "alerta" | "info"; vivo?: boolean }[] = [];
+  if (msgUbicacion)
+    avisos.push({
+      clave: "ubicacion",
+      tipo: msgUbicacion.tipo === "error" ? "alerta" : "info",
+      vivo: true,
+      contenido: (
+        <>
+          <p>{msgUbicacion.texto}</p>
+          {msgUbicacion.tipo === "cerca" && msgUbicacion.cercanas.length > 0 && (
+            <ul className="mt-1 space-y-0.5">
+              {msgUbicacion.cercanas.map(({ f, km }) => (
+                <li key={f.properties.id}>
+                  <button
+                    type="button"
+                    onClick={() => seleccionar(f.properties.id)}
+                    className="min-h-9 text-left text-white underline"
+                  >
+                    {f.properties.nombre} ({f.properties.municipio}) · a unos {km < 1 ? "menos de 1" : Math.round(km)} km
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ),
+    });
+  if (!enLinea)
+    avisos.push({ clave: "offline", tipo: "alerta", vivo: true, contenido: "Sin conexión: lo que ves puede estar desactualizado." });
+  if (errorScores && cargaGeo === "ok")
+    avisos.push({
+      clave: "scores",
+      tipo: "alerta",
+      vivo: true,
+      contenido: (
+        <>
+          No pudimos actualizar los niveles.{" "}
+          <button type="button" onClick={cargarScores} className="font-semibold text-acento underline">
+            Reintentar
+          </button>
+        </>
+      ),
+    });
+  if (avisoEnlace) avisos.push({ clave: "enlace", tipo: "alerta", vivo: true, contenido: avisoEnlace });
+  if (!sel) {
+    if (mapaRespaldo)
+      avisos.push({ clave: "calles", tipo: "info", contenido: "No pudimos cargar el mapa de calles; mostramos solo las colonias." });
+    if (geomRespaldo)
+      avisos.push({
+        clave: "geom",
+        tipo: "info",
+        contenido: "Parte de los límites son de respaldo (áreas estadísticas, no colonias) y aproximados.",
+      });
+    if (cargaGeo === "ok" && resumen.conNivel === 0 && !errorScores && vista === "mapa" && mapaEstado === "listo")
+      avisos.push({
+        clave: "vacio",
+        tipo: "info",
+        contenido: "Aún no hay colonias con nivel publicado. Elige la tuya y sé la primera persona en reportar.",
+      });
+  }
+
+  const buscador = (
+    <>
+      <div className="relative min-w-0 flex-1">
+        <label htmlFor="buscar" className="sr-only">Busca tu colonia</label>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="pointer-events-none absolute left-3.5 top-1/2 h-[17px] w-[17px] -translate-y-1/2"
+          fill="none"
+          stroke="var(--gris-dock)"
+          strokeWidth="2.4"
+        >
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <line x1="15.5" y1="15.5" x2="21" y2="21" />
+        </svg>
+        <input
+          ref={campoBusqueda}
+          id="buscar"
+          type="search"
+          value={busqueda}
+          onChange={(e) => { setBusqueda(e.target.value); setActivo(-1); }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown" && listaAbierta) {
+              e.preventDefault();
+              setActivo((idxActivo + 1) % resultados.length);
+            } else if (e.key === "ArrowUp" && listaAbierta) {
+              e.preventDefault();
+              setActivo(idxActivo <= 0 ? resultados.length - 1 : idxActivo - 1);
+            } else if (e.key === "Enter" && resultados.length) {
+              seleccionar(resultados[idxActivo >= 0 ? idxActivo : 0].properties.id);
+            } else if (e.key === "Escape" && busqueda) {
+              // Limpia el texto sin que el Escape llegue al panel de la colonia abierta
+              e.preventDefault();
+              setBusqueda("");
+              setActivo(-1);
+            }
+          }}
+          placeholder={sel ? "Busca otra colonia…" : "Busca tu colonia…"}
+          autoComplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls="resultados-busqueda"
+          aria-expanded={listaAbierta}
+          aria-activedescendant={listaAbierta && idxActivo >= 0 ? `res-${resultados[idxActivo].properties.id}` : undefined}
+          enterKeyHint="search"
+          className="h-[3.25rem] w-full rounded-[15px] border border-transparent bg-white/[0.08] pl-10 pr-3 text-base text-white outline-none placeholder:text-gris-dock focus:border-white/40 md:h-12 md:text-[0.9375rem]"
+        />
+        {/* Resultados hacia arriba: el dock está abajo */}
+        {sinCoincidencias && (
+          <p className="absolute bottom-full z-30 mb-2 w-full min-w-[15rem] rounded-2xl bg-white px-3.5 py-2.5 text-sm text-tinta shadow-[0_16px_40px_rgba(11,34,51,0.3)]">
+            No encontramos colonias con ese nombre. Revisa cómo está escrito o prueba con otra parte del nombre.
+          </p>
+        )}
+        {listaAbierta && (
+          <div className="absolute bottom-full z-30 mb-2 w-full min-w-[15rem] overflow-hidden rounded-2xl bg-white text-tinta shadow-[0_16px_40px_rgba(11,34,51,0.3)]">
+            <ul id="resultados-busqueda" role="listbox" aria-label="Colonias encontradas" className="max-h-64 overflow-auto p-1.5">
+              {resultados.map((f, i) => (
+                <li
+                  key={f.properties.id}
+                  id={`res-${f.properties.id}`}
+                  role="option"
+                  aria-selected={i === idxActivo}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => seleccionar(f.properties.id)}
+                  className={`flex min-h-11 cursor-pointer items-center rounded-xl px-3 py-2 text-left text-[0.9375rem] hover:bg-niebla ${i === idxActivo ? "bg-acento" : ""}`}
+                >
+                  <span>
+                    {f.properties.nombre}
+                    <span className="sr-only">, </span>
+                    <span className="mono-etiqueta ml-2 !text-[0.65rem] text-texto-tenue">{f.properties.municipio}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {totalResultados > resultados.length && (
+              <p className="border-t border-borde px-3.5 py-2 text-xs text-texto-tenue">
+                {totalResultados - resultados.length} colonias más: escribe más letras para afinar.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={usarUbicacion}
+        aria-label={ubicando ? "Buscando tu ubicación" : "Usar mi ubicación para encontrar mi colonia"}
+        title="Usar mi ubicación"
+        disabled={ubicando || cargaGeo !== "ok"}
+        className={`${accionDock} h-[3.25rem] w-[3.25rem] disabled:opacity-50 md:h-12 md:w-12`}
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className={`h-[19px] w-[19px] ${ubicando ? "animate-pulse" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.6"
+        >
+          <circle cx="12" cy="12" r="7" />
+          <circle cx="12" cy="12" r="2" fill="currentColor" />
+        </svg>
+      </button>
+    </>
+  );
+
+  // Controles de la esquina superior derecha (se pasan a la navegación flotante)
+  const controles = (
+    <>
+      {/* En móvil el filtro de municipio está en la lista (no cabe junto al logo) */}
+      <div className="hidden md:block">
+        <label htmlFor="municipio" className="sr-only">Municipio</label>
+        <select
+          id="municipio"
+          value={municipio}
+          onChange={(e) => cambiarMunicipio(e.target.value)}
+          className={`${pildora} max-w-[14rem] cursor-pointer appearance-none pr-9`}
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%230b2233' stroke-width='1.8'/%3E%3C/svg%3E\")",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right 14px center",
+            backgroundSize: "11px",
+          }}
+        >
+          <option value="">Todos los municipios</option>
+          {municipios.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+      </div>
+      <button
+        type="button"
+        onClick={() => cambiarVista(vista === "mapa" ? "lista" : "mapa")}
+        disabled={mapaFallo && vista === "lista"}
+        className={`${pildora} font-medium disabled:hidden`}
+      >
+        {vista === "mapa" ? "Ver lista" : "Ver mapa"}
+      </button>
+    </>
+  );
 
   return (
-    <div ref={raiz} className="relative flex-1 overflow-clip bg-slate-200">
+    <div ref={raiz} className="mapa-dock relative isolate flex-1 overflow-clip bg-[#eef0f2]">
+      <h1 className="sr-only">¿Cómo está el agua en tu colonia? Mapa de lo que reportan los vecinos en la Zona Metropolitana de Guadalajara</h1>
+
       {mapaActivado && (
         <MapView
           geo={geo}
@@ -358,241 +593,133 @@ export default function AguaApp() {
           features={features}
           scores={scores}
           municipio={municipio}
+          municipios={municipios}
+          onMunicipio={cambiarMunicipio}
           consulta={busqueda}
           seleccionId={sel}
-          conPanel={coloniaSel != null}
           onSeleccionar={seleccionar}
         />
       )}
 
-      {/* Tarjeta superior: título, búsqueda y controles */}
-      <div ref={tarjeta} className="absolute inset-x-0 top-0 z-10 p-2 md:inset-x-auto md:left-3 md:top-3 md:w-[23rem] md:p-0">
-        <div className="rounded-xl bg-white/95 p-3 shadow-lg ring-1 ring-slate-300 backdrop-blur">
-          <div className={sel ? "hidden md:block" : ""}>
-            <h1 className="text-base font-bold leading-tight text-slate-900 md:text-lg">¿Cómo está el agua en tu colonia?</h1>
-            <p className="mt-1 text-xs text-slate-700">
-              <span className="hidden md:inline">Mapa de lo que reportan los vecinos en la Zona Metropolitana de Guadalajara.{" "}</span>
-              {cargaGeo === "ok" && (
-                <strong>
-                  {resumen.conNivel === 0
-                    ? "Todavía no hay colonias con nivel publicado."
-                    : `${resumen.conNivel} ${resumen.conNivel === 1 ? "colonia con nivel publicado" : "colonias con nivel publicado"}; ${resumen.afectadas} en nivel moderado o más con confianza media o alta.`}
-                </strong>
-              )}{" "}
-              Información ciudadana, no oficial.
-            </p>
-          </div>
+      <NavPrincipal variante="mapa" extra={controles} />
 
-          <div className="mt-2 flex gap-2">
-          <div className="relative min-w-0 flex-1">
-            <label htmlFor="buscar" className="sr-only">Busca tu colonia</label>
-            <input
-              id="buscar"
-              type="search"
-              value={busqueda}
-              onChange={(e) => { setBusqueda(e.target.value); setActivo(-1); }}
-              onKeyDown={(e) => {
-                if (e.key === "ArrowDown" && listaAbierta) {
-                  e.preventDefault();
-                  setActivo((idxActivo + 1) % resultados.length);
-                } else if (e.key === "ArrowUp" && listaAbierta) {
-                  e.preventDefault();
-                  setActivo(idxActivo <= 0 ? resultados.length - 1 : idxActivo - 1);
-                } else if (e.key === "Enter" && resultados.length) {
-                  seleccionar(resultados[idxActivo >= 0 ? idxActivo : 0].properties.id);
-                } else if (e.key === "Escape" && busqueda) {
-                  // Limpia el texto sin que el Escape llegue al panel de la colonia abierta
-                  e.preventDefault();
-                  setBusqueda("");
-                  setActivo(-1);
-                }
-              }}
-              placeholder="Busca tu colonia…"
-              autoComplete="off"
-              role="combobox"
-              aria-autocomplete="list"
-              aria-controls="resultados-busqueda"
-              aria-expanded={listaAbierta}
-              aria-activedescendant={listaAbierta && idxActivo >= 0 ? `res-${resultados[idxActivo].properties.id}` : undefined}
-              enterKeyHint="search"
-              className="h-11 w-full rounded-lg border border-slate-400 bg-white px-3 text-base outline-none placeholder:text-slate-600 focus:border-sky-700"
-            />
-            {sinCoincidencias && (
-              <p className="absolute z-30 mt-1 w-full min-w-[15rem] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-lg">
-                No encontramos colonias con ese nombre. Revisa cómo está escrito o prueba con otra parte del nombre.
-              </p>
+      {/* Resumen: al centro en pantallas anchas, bajo el logo en las demás */}
+      {cargaGeo === "ok" && (
+        <p
+          title={resumenCompleto}
+          className={`mono-etiqueta pointer-events-none absolute left-3 top-[4.25rem] z-20 rounded-xl ${sel ? "max-md:hidden" : ""} bg-tinta px-2.5 py-1.5 !text-[0.65rem] text-[#e6edf2] md:left-4 md:top-[4.75rem] lg:left-1/2 lg:top-[1.375rem] lg:-translate-x-1/2 lg:rounded-2xl lg:px-3.5 lg:py-2 lg:!text-xs`}
+        >
+          <span aria-hidden="true">
+            {resumen.conNivel === 0 ? (
+              "Aún sin colonias con nivel"
+            ) : (
+              <>
+                {resumen.conNivel} <span className="lg:hidden">con nivel</span>
+                <span className="hidden lg:inline">{resumen.conNivel === 1 ? "colonia con nivel" : "colonias con nivel"}</span>
+                {" · "}
+                {resumen.afectadas} <span className="lg:hidden">moderado+</span>
+                <span className="hidden lg:inline">moderado o más</span>
+              </>
             )}
-            {listaAbierta && (
-              <div className="absolute z-30 mt-1 w-full min-w-[15rem] overflow-hidden rounded-lg border border-slate-300 bg-white shadow-lg">
-                <ul id="resultados-busqueda" role="listbox" aria-label="Colonias encontradas" className="max-h-64 overflow-auto">
-                  {resultados.map((f, i) => (
-                    <li
-                      key={f.properties.id}
-                      id={`res-${f.properties.id}`}
-                      role="option"
-                      aria-selected={i === idxActivo}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => seleccionar(f.properties.id)}
-                      className={`flex min-h-11 cursor-pointer items-center px-3 py-2 text-left text-sm hover:bg-slate-100 ${i === idxActivo ? "bg-sky-100" : ""}`}
-                    >
-                      <span>
-                        {f.properties.nombre}
-                        <span className="sr-only">, </span>
-                        <span className="ml-2 text-xs text-slate-600">{f.properties.municipio}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                {totalResultados > resultados.length && (
-                  <p className="border-t border-slate-200 px-3 py-2 text-xs text-slate-700">
-                    {totalResultados - resultados.length} colonias más: escribe más letras para afinar.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-            <button
-              type="button"
-              onClick={usarUbicacion}
-              aria-label="Usar mi ubicación para encontrar mi colonia"
-              disabled={ubicando || cargaGeo !== "ok"}
-              className={`${btnBase} shrink-0 bg-sky-800 text-white hover:bg-sky-900 disabled:opacity-50`}
-            >
-              {ubicando ? "Buscando…" : "Mi ubicación"}
-            </button>
-          </div>
+          </span>
+          <span className="sr-only">{resumenCompleto}</span>
+        </p>
+      )}
 
-          <div className={`mt-2 items-center gap-2 ${sel ? "hidden md:flex" : "flex"}`}>
-            <label htmlFor="municipio" className="sr-only">Municipio</label>
-            <select
-              id="municipio"
-              value={municipio}
-              onChange={(e) => cambiarMunicipio(e.target.value)}
-              className="h-11 min-w-0 flex-1 rounded-lg border border-slate-400 bg-white px-2 text-sm"
-            >
-              <option value="">Todos los municipios</option>
-              {municipios.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-            <div role="group" aria-label="Tipo de vista" className="flex overflow-hidden rounded-lg border border-slate-400">
-              {(["mapa", "lista"] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  aria-pressed={vista === v}
-                  onClick={() => cambiarVista(v)}
-                  className={`${btnBase} rounded-none ${vista === v ? "bg-slate-900 text-white" : "bg-white text-slate-900 hover:bg-slate-100"}`}
-                >
-                  {v === "mapa" ? "Mapa" : "Lista"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {msgUbicacion && (
-            <div role="status" className="mt-2 rounded-lg bg-sky-50 p-2 text-xs text-sky-950 ring-1 ring-sky-200">
-              <p>{msgUbicacion.texto}</p>
-              {msgUbicacion.tipo === "cerca" && msgUbicacion.cercanas.length > 0 && (
-                <ul className="mt-1 space-y-1">
-                  {msgUbicacion.cercanas.map(({ f, km }) => (
-                    <li key={f.properties.id}>
-                      <button
-                        type="button"
-                        onClick={() => seleccionar(f.properties.id)}
-                        className="min-h-9 text-left text-sky-900 underline"
-                      >
-                        {f.properties.nombre} ({f.properties.municipio}) · a unos {km < 1 ? "menos de 1" : Math.round(km)} km
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          <div className={sel ? "hidden md:block" : ""}>
-            {!enLinea && (
-              <p role="status" className="mt-2 rounded-lg bg-amber-100 p-2 text-xs text-amber-950 ring-1 ring-amber-400">
-                Sin conexión: lo que ves puede estar desactualizado.
-              </p>
-            )}
-            {errorScores && cargaGeo === "ok" && (
-              <p role="status" className="mt-2 rounded-lg bg-amber-100 p-2 text-xs text-amber-950 ring-1 ring-amber-400">
-                No pudimos actualizar los niveles.{" "}
-                <button type="button" onClick={cargarScores} className="underline">Reintentar</button>
-              </p>
-            )}
-            {mapaRespaldo && (
-              <p className="mt-2 rounded-lg bg-slate-100 p-2 text-xs text-slate-800 ring-1 ring-slate-300">
-                No pudimos cargar el mapa de calles; mostramos solo las colonias.
-              </p>
-            )}
-            {geomRespaldo && (
-              <p className="mt-2 rounded-lg bg-slate-100 p-2 text-xs text-slate-800 ring-1 ring-slate-300">
-                Parte de los límites son de respaldo (áreas estadísticas, no colonias) y aproximados.
-              </p>
-            )}
-            {avisoEnlace && (
-              <p role="status" className="mt-2 rounded-lg bg-amber-100 p-2 text-xs text-amber-950 ring-1 ring-amber-400">
-                {avisoEnlace}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
+      {vista === "mapa" && <Leyenda variante="tarjeta" className="absolute right-4 top-1/2 z-10 hidden -translate-y-1/2 md:block" />}
 
       {/* Estados de carga / error / vacío */}
       {cargaGeo !== "ok" && (
-        <div className="absolute inset-0 z-[5] flex items-center justify-center p-6 pt-52">
-          <div role="status" className="max-w-sm rounded-xl bg-white p-5 text-center shadow-xl ring-1 ring-slate-300">
+        <div className="absolute inset-0 z-[5] flex items-center justify-center p-6 pb-56">
+          <div role="status" className="max-w-sm rounded-[20px] bg-white p-5 text-center text-tinta shadow-[0_16px_44px_rgba(11,34,51,0.25)]">
             {cargaGeo === "cargando" && (
-              <span aria-hidden="true" className="mx-auto mb-3 block h-8 w-8 animate-spin rounded-full border-4 border-slate-300 border-t-sky-800" />
+              <span aria-hidden="true" className="mx-auto mb-3 block h-8 w-8 animate-spin rounded-full border-4 border-borde border-t-tinta" />
             )}
-            <p className="font-medium text-slate-900">{textoCarga}</p>
+            <p className="font-medium">{textoCarga}</p>
             {cargaGeo === "error" && (
               <>
                 <button
                   type="button"
                   onClick={() => setIntentoGeo((i) => i + 1)}
-                  className={`${btnBase} mt-3 bg-sky-800 text-white hover:bg-sky-900`}
+                  className="mt-3 inline-flex min-h-11 items-center justify-center rounded-[15px] bg-tinta px-4 text-sm font-semibold text-white hover:bg-[#13334a]"
                 >
                   Reintentar
                 </button>
-                <p className="mt-3 text-sm text-slate-700">
-                  Mientras tanto, lee <Link href="/que-hacer" className="text-sky-800 underline">qué hacer con agua turbia</Link> y{" "}
-                  <Link href="/denunciar" className="text-sky-800 underline">dónde denunciar</Link>.
+                <p className="mt-3 text-sm text-[#3b4f5c]">
+                  Mientras tanto, lee <Link href="/que-hacer" className="text-marca underline">qué hacer con agua turbia</Link> y{" "}
+                  <Link href="/denunciar" className="text-marca underline">dónde denunciar</Link>.
                 </p>
               </>
             )}
-            {cargaGeo === "cargando" && !enLinea && (
-              <p className="mt-2 text-sm text-slate-700">Parece que no hay internet.</p>
-            )}
+            {cargaGeo === "cargando" && !enLinea && <p className="mt-2 text-sm text-[#3b4f5c]">Parece que no hay internet.</p>}
           </div>
         </div>
       )}
 
-      {cargaGeo === "ok" && resumen.conNivel === 0 && !errorScores && !sel && vista === "mapa" && mapaEstado === "listo" && (
-        <p className="pointer-events-none absolute inset-x-4 top-[15rem] z-[5] mx-auto hidden max-w-sm rounded-xl bg-white/95 p-3 text-center text-sm text-slate-800 shadow ring-1 ring-slate-300 md:block md:top-auto md:bottom-24 md:left-3 md:mx-0 md:max-w-[23rem] md:text-left">
-          Aún no hay colonias con nivel publicado. Elige la tuya y sé la primera persona en reportar.
-        </p>
-      )}
+      <p className="mono-etiqueta pointer-events-none absolute bottom-4 left-4 z-10 hidden rounded-lg bg-white/90 px-2.5 py-1.5 !text-[0.6875rem] text-[#334155] md:block">
+        Información ciudadana, no oficial
+      </p>
 
-      {vista === "mapa" && (
-        <Leyenda
-          className={`absolute bottom-2 left-2 right-14 z-10 md:bottom-3 md:left-3 md:right-auto md:w-[23rem] ${sel ? "hidden md:block" : ""}`}
-        />
-      )}
+      {/* Dock: buscar, ubicarme y reportar; con una colonia elegida, crece hacia arriba con su ficha */}
+      <section
+        ref={dock}
+        aria-label={coloniaSel ? `Colonia ${coloniaSel.properties.nombre}` : "Buscar y reportar"}
+        className={`oscuro absolute inset-x-3 bottom-3.5 z-20 flex max-h-[calc(100%-5.5rem)] flex-col rounded-3xl bg-tinta text-white shadow-[0_14px_40px_rgba(11,34,51,0.4)] md:inset-x-auto md:bottom-5 md:left-1/2 md:max-h-[calc(100%-6.5rem)] md:w-[40rem] md:max-w-[calc(100%-2rem)] md:-translate-x-1/2 md:rounded-[22px] md:shadow-[0_16px_44px_rgba(11,34,51,0.4)] ${
+          coloniaSel ? "" : "p-3 md:p-2.5"
+        }`}
+      >
+        {avisos.length > 0 && (
+          <div className={`flex shrink-0 flex-col gap-1.5 ${coloniaSel ? "px-2.5 pt-2.5" : "pb-2.5"}`}>
+            {avisos.map((a) => (
+              <div
+                key={a.clave}
+                role={a.vivo ? "status" : undefined}
+                className={`rounded-xl bg-white/[0.07] px-3 py-2 text-[0.8125rem] leading-snug text-[#e6edf2] ${
+                  a.tipo === "alerta" ? "border-l-[3px] border-acento" : ""
+                }`}
+              >
+                {a.contenido}
+              </div>
+            ))}
+          </div>
+        )}
 
-      {coloniaSel && (
-        <PanelColonia
-          key={coloniaSel.properties.id}
-          colonia={coloniaSel.properties}
-          score={scores[coloniaSel.properties.id]}
-          onCerrar={cerrar}
-          onReportado={cargarScores}
-        />
-      )}
+        {coloniaSel ? (
+          <PanelColonia
+            key={coloniaSel.properties.id}
+            colonia={coloniaSel.properties}
+            score={scores[coloniaSel.properties.id]}
+            modoInicial={quiereReportar ? "reportar" : "ficha"}
+            buscador={buscador}
+            onCerrar={cerrar}
+            onReportado={cargarScores}
+          />
+        ) : (
+          <>
+            <Leyenda variante="fila" className="md:hidden" />
+            <div className="flex items-center gap-2">
+              {buscador}
+              <button
+                type="button"
+                onClick={pedirReporte}
+                className="hidden h-12 shrink-0 rounded-[15px] bg-acento px-5 text-[0.9375rem] font-bold text-tinta hover:bg-acento-fuerte md:block"
+              >
+                Reportar el agua de mi colonia
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={pedirReporte}
+              className="mt-2 h-[3.25rem] w-full rounded-[15px] bg-acento text-base font-bold text-tinta hover:bg-acento-fuerte md:hidden"
+            >
+              Reportar el agua de mi colonia
+            </button>
+            <p className="mono-etiqueta mt-2.5 px-1 text-center !text-[0.6rem] text-gris-dock md:hidden">
+              Información ciudadana, no oficial
+            </p>
+          </>
+        )}
+      </section>
 
       <div role="status" aria-live="polite" className="sr-only">
         {busqueda.trim().length >= 2
@@ -604,4 +731,3 @@ export default function AguaApp() {
     </div>
   );
 }
-

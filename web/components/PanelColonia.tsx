@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 import Compartir from "./Compartir";
 import ComentariosVecinos from "./ComentariosVecinos";
 import DatosOficiales from "./DatosOficiales";
 import FormularioReporte from "./FormularioReporte";
-import { CONFIANZA, ChipNivel, etiquetaNivel, haceCuanto, nivelDeScore } from "./niveles";
+import { CONFIANZA, ChipNivel, etiquetaNivel, haceCuanto, haceCuantoCorto, Muestra, nivelDeScore } from "./niveles";
 import Sparkline from "./Sparkline";
 import type { ColoniaProps, DetalleColonia, Score } from "./tipos";
 
@@ -18,29 +18,38 @@ const FUENTES_GEOM: Record<string, string> = {
 };
 
 type Carga = { estado: "cargando" } | { estado: "error" } | { estado: "ok"; d: DetalleColonia };
+/** Ficha compacta, con el historial y los datos abiertos, o con el formulario de reporte */
+export type ModoPanel = "ficha" | "detalle" | "reportar";
 
 /**
- * Panel de una colonia. En móvil es una hoja inferior (se arrastra/expande);
- * en escritorio, una tarjeta lateral.
+ * Ficha de una colonia dentro del dock oscuro: nombre, nivel y cifras siempre a la vista; el historial
+ * y el formulario se abren en una hoja clara que crece hacia arriba. `buscador` son los controles de búsqueda
+ * del mapa, que en escritorio siguen en la fila de acciones.
  */
 export default function PanelColonia({
   colonia,
   score,
+  modoInicial = "ficha",
+  buscador,
   onCerrar,
   onReportado,
 }: {
   colonia: ColoniaProps;
   score?: Score;
+  modoInicial?: ModoPanel;
+  buscador?: ReactNode;
   onCerrar: () => void;
   onReportado: () => void;
 }) {
   const [carga, setCarga] = useState<Carga>({ estado: "cargando" });
   const [intento, setIntento] = useState(0);
-  const [expandido, setExpandido] = useState(false);
+  const [modo, setModo] = useState<ModoPanel>(modoInicial);
   const titulo = useRef<HTMLHeadingElement>(null);
-  const arrastre = useRef<number | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const formRef = useRef<HTMLDivElement>(null);
+  const hoja = useRef<HTMLDivElement>(null);
+  const irACompartir = useRef(false);
+  // Si se abre directo en el formulario, el foco es del formulario (lo pone él al montarse), no del título
+  const enfocarTitulo = useRef(modoInicial === "ficha");
+  const idHoja = useId();
 
   // Detalle de la colonia
   useEffect(() => {
@@ -59,7 +68,8 @@ export default function PanelColonia({
 
   // Foco al título al abrir (lectores de pantalla y teclado) y Escape para cerrar
   useEffect(() => {
-    titulo.current?.focus({ preventScroll: true });
+    if (enfocarTitulo.current) titulo.current?.focus({ preventScroll: true });
+    enfocarTitulo.current = false;
     const alTeclear = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return;
       // Escape dentro de un campo (buscador, comentario, selector) solo es de ese campo
@@ -70,6 +80,18 @@ export default function PanelColonia({
     window.addEventListener("keydown", alTeclear);
     return () => window.removeEventListener("keydown", alTeclear);
   }, [onCerrar]);
+
+  // Al cambiar de hoja: arriba del todo; «compartir» baja hasta esa sección
+  useEffect(() => {
+    const h = hoja.current;
+    if (!h) return;
+    if (irACompartir.current) {
+      irACompartir.current = false;
+      document.getElementById("compartir-t")?.scrollIntoView({ block: "start" });
+      return;
+    }
+    h.scrollTop = 0;
+  }, [modo]);
 
   const alReportar = useCallback(() => {
     onReportado();
@@ -84,136 +106,237 @@ export default function PanelColonia({
   const n = rep?.n ?? score?.n ?? 0;
   const huellas = rep?.n_huellas ?? score?.n_huellas ?? 0;
   const ultimo = rep?.ultimo ?? score?.ultimo ?? null;
+  const ultimoCorto = haceCuantoCorto(ultimo);
 
-  function alSoltar(e: React.PointerEvent) {
-    if (arrastre.current == null) return;
-    const dy = e.clientY - arrastre.current;
-    arrastre.current = null;
-    if (dy < -30) setExpandido(true);
-    else if (dy > 30) {
-      if (expandido) setExpandido(false);
-      else onCerrar();
-    }
+  const resumen = nivel
+    ? confianza
+      ? `${CONFIANZA[confianza].etiqueta}: ${CONFIANZA[confianza].corta}`
+      : "Es lo que reportan vecinos, no una medición oficial."
+    : "Aún no hay suficientes reportes para mostrar un nivel. Sin reportes no significa que el agua sea buena.";
+  const aclaracion = "Ningún nivel significa agua segura para beber.";
+
+  const cajaNivel = (clase: string) => (
+    <div className={`items-center gap-3 rounded-[14px] bg-white/[0.06] px-3 py-3 md:px-4 ${clase}`}>
+      <Muestra nivel={nivel} enorme />
+      <div className="flex-1">
+        <p className="mono-etiqueta !text-[0.6875rem] text-gris-dock">{nivel ? `Nivel ${nivel}/4` : "Sin nivel"}</p>
+        <p className="mt-0.5 whitespace-nowrap text-[1.375rem] font-bold leading-tight md:text-2xl">
+          {nivel ? etiquetaNivel(nivel) : "Sin datos"}
+        </p>
+      </div>
+      {nivel && confianza && (
+        <div className="text-right md:hidden">
+          <p className="mono-etiqueta !text-[0.6875rem] text-gris-dock">Confianza</p>
+          <p className="mt-0.5 text-base font-semibold capitalize">{confianza}</p>
+        </div>
+      )}
+    </div>
+  );
+
+  function alternar(m: Exclude<ModoPanel, "ficha">) {
+    setModo((actual) => (actual === m ? "ficha" : m));
   }
 
   return (
-    <aside
-      aria-label={`Información de ${colonia.nombre}`}
-      className={`absolute inset-x-0 bottom-0 z-20 flex flex-col rounded-t-2xl bg-white shadow-[0_-8px_30px_rgba(15,23,42,0.25)] transition-[height] duration-200 md:inset-y-3 md:left-auto md:right-3 md:h-auto md:w-[26rem] md:rounded-2xl md:shadow-2xl ${
-        expandido ? "h-[88%]" : "h-[52%]"
-      }`}
-    >
-      {/* Asa de la hoja (solo móvil) */}
-      <button
-        type="button"
-        onClick={() => setExpandido(!expandido)}
-        onPointerDown={(e) => { arrastre.current = e.clientY; }}
-        onPointerUp={alSoltar}
-        onPointerCancel={() => { arrastre.current = null; }}
-        aria-expanded={expandido}
-        aria-label={expandido ? "Reducir panel" : "Ampliar panel"}
-        className="flex h-8 w-full shrink-0 touch-none items-center justify-center md:hidden"
+    <article aria-label={`Información de ${colonia.nombre}`} className="flex min-h-0 flex-1 flex-col">
+      {/* Cabecera: siempre visible */}
+      <div
+        className={`shrink-0 border-b border-white/[0.12] px-4 pt-4 md:px-[22px] md:pb-4 md:pt-5 ${modo === "ficha" ? "pb-4" : "pb-3"}`}
       >
-        <span aria-hidden="true" className="h-1.5 w-12 rounded-full bg-slate-400" />
-      </button>
-
-      {/* relative: los sr-only absolutos de dentro (radios, "abre en otra pestaña") deben recortarse aquí y no estirar el desbordamiento del contenedor raíz */}
-      <div ref={scrollRef} className="relative flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pt-1 md:pt-4">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h2 ref={titulo} tabIndex={-1} className="text-xl font-bold leading-tight outline-none">
+        <div className="flex items-start gap-3 md:gap-[18px]">
+          <div className="min-w-0 flex-1">
+            <p className="mono-etiqueta !text-[0.7rem] text-gris-dock">{colonia.municipio ?? "Zona Metropolitana"}</p>
+            <h2
+              ref={titulo}
+              tabIndex={-1}
+              className="mt-1 text-[1.6875rem] font-bold leading-none outline-none md:text-[1.875rem]"
+            >
               {colonia.nombre}
             </h2>
-            <p className="text-sm text-slate-600">{colonia.municipio}</p>
+            <p className="mt-2.5 hidden max-w-[25rem] text-sm leading-[1.45] text-texto-dock text-pretty md:block">
+              {resumen} {aclaracion}
+            </p>
           </div>
+          {cajaNivel("hidden md:flex")}
           <button
             type="button"
             onClick={onCerrar}
             aria-label={`Cerrar información de ${colonia.nombre}`}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-2xl leading-none text-slate-700 hover:bg-slate-100"
+            className="-mr-1 -mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-2xl leading-none hover:bg-white/20"
           >
             <span aria-hidden="true">×</span>
           </button>
         </div>
-
-        {/* Formulario arriba del todo: es lo primero que se ve al abrir una colonia */}
-        <div ref={formRef}>
-          <FormularioReporte coloniaId={colonia.id} nombre={colonia.nombre} onReportado={alReportar} />
-        </div>
-
-        {/* Estado actual */}
-        <div className="mt-3 rounded-lg border border-slate-300 p-3 text-sm" aria-live="polite">
-          {nivel ? (
-            <>
-              <ChipNivel nivel={nivel} />
-              {confianza && (
-                <p className="mt-2">
-                  <strong>{CONFIANZA[confianza].etiqueta}.</strong>{" "}
-                  <span className="text-slate-700">{CONFIANZA[confianza].explicacion}</span>
-                </p>
-              )}
-              <p className="mt-2 text-xs text-slate-600">
-                {n} {n === 1 ? "reporte" : "reportes"} de {huellas} {huellas === 1 ? "dispositivo distinto" : "dispositivos distintos"}
-                {ultimo ? `; el último, ${haceCuanto(ultimo)}` : ""}. Los más recientes pesan más.
-              </p>
-            </>
-          ) : (
-            <>
-              <ChipNivel nivel={null} />
-              <p className="mt-2 text-slate-700">
-                Aún no hay suficientes reportes de esta colonia para mostrar un nivel.{" "}
-                <strong>Sin reportes no significa que el agua sea buena</strong>: significa que todavía no sabemos.
-              </p>
-            </>
-          )}
-          <p className="mt-2 text-xs text-slate-600">
-            Es lo que reportan vecinos, no una medición oficial ni un análisis de laboratorio.{" "}
-            <strong>Ningún nivel significa que el agua sea segura para beber:</strong> mira{" "}
-            <Link href="/que-hacer" className="text-sky-800 underline">qué hacer</Link>.{" "}
-            <Link href="/metodologia" className="text-sky-800 underline">Cómo se calcula</Link>.
-          </p>
-        </div>
-
-        {/* Serie de 30 días */}
-        <section aria-labelledby="serie-t" className="mt-5">
-          <h3 id="serie-t" className="text-sm font-bold">Últimos 30 días</h3>
-          {carga.estado === "cargando" && <p className="mt-2 animate-pulse text-xs text-slate-600">Cargando el historial…</p>}
-          {carga.estado === "error" && (
-            <p className="mt-2 text-xs text-slate-700">
-              No pudimos cargar el historial ni los reportes publicados.{" "}
-              <button type="button" onClick={() => { setCarga({ estado: "cargando" }); setIntento((i) => i + 1); }} className="text-sky-800 underline">
-                Reintentar
-              </button>
-            </p>
-          )}
-          {rep && rep.serie.length > 0 && <Sparkline serie={rep.serie} />}
-          {rep && rep.serie.length === 0 && (
-            <p className="mt-2 text-xs text-slate-700">Aún no hay reportes de vecinos en los últimos 30 días.</p>
-          )}
-        </section>
-
-        {detalle?.comentarios && <ComentariosVecinos comentarios={detalle.comentarios} />}
-
-        {detalle && <DatosOficiales datos={detalle.oficial} />}
-
-        <Compartir
-          id={colonia.id}
-          nombre={colonia.nombre}
-          municipio={colonia.municipio}
-          etiquetaNivel={nivel ? etiquetaNivel(nivel) : null}
-        />
-
-        <p className="mt-5 text-xs text-slate-600">
-          ¿El agua te enferma o ya la reportaste y nadie responde? Mira{" "}
-          <Link href="/que-hacer" className="text-sky-800 underline">qué hacer</Link> y{" "}
-          <Link href="/denunciar" className="text-sky-800 underline">dónde denunciar</Link>.
-        </p>
-        {colonia.fuente_geom && (
-          <p className="mt-2 text-xs text-slate-600">
-            Límites de la colonia: {FUENTES_GEOM[colonia.fuente_geom] ?? "aproximados y no oficiales"}.
+        {cajaNivel(`mt-3.5 md:hidden ${modo === "ficha" ? "flex" : "hidden"}`)}
+        {/* Con la hoja abierta, en móvil el nivel cabe en una línea para dejarle sitio */}
+        {modo !== "ficha" && (
+          <p className="mt-2 flex items-center gap-2 text-sm font-semibold md:hidden">
+            <Muestra nivel={nivel} />
+            {nivel ? `Nivel ${nivel}/4 · ${etiquetaNivel(nivel)}` : "Sin datos suficientes"}
+            {nivel && confianza ? <span className="font-normal text-gris-dock">· confianza {confianza}</span> : null}
           </p>
         )}
       </div>
-    </aside>
+
+      {/* Cifras y acceso al historial */}
+      <div className="mono-etiqueta flex shrink-0 flex-wrap items-center gap-x-[22px] gap-y-1 border-b border-white/[0.12] px-4 py-2.5 text-gris-dock md:px-[22px]">
+        <p className="flex flex-wrap gap-x-[22px] gap-y-1">
+          {n > 0 ? (
+            <>
+              <span><span className="text-white">{n}</span> {n === 1 ? "reporte" : "reportes"}</span>
+              <span><span className="text-white">{huellas}</span> {huellas === 1 ? "dispositivo" : "dispositivos"}</span>
+              {ultimoCorto && (
+                <span>
+                  Último <span className="text-white">{ultimoCorto}</span>
+                  <span className="sr-only"> ({haceCuanto(ultimo)})</span>
+                </span>
+              )}
+            </>
+          ) : (
+            <span>Sin reportes recientes</span>
+          )}
+        </p>
+        <button
+          type="button"
+          onClick={() => alternar("detalle")}
+          aria-expanded={modo === "detalle"}
+          aria-controls={idHoja}
+          className="-my-2 ml-auto inline-flex min-h-10 items-center text-acento"
+        >
+          {modo === "detalle" ? (
+            <>
+              Ocultar<span className="sr-only"> el historial</span> ‹
+            </>
+          ) : (
+            "Historial y más ›"
+          )}
+        </button>
+      </div>
+      {modo === "ficha" && (
+        <p className="shrink-0 px-4 pt-2.5 text-sm leading-[1.45] text-texto-dock md:hidden">
+          {resumen} {aclaracion}
+        </p>
+      )}
+
+      {/* Hoja clara: historial completo o formulario */}
+      {modo !== "ficha" && (
+        <div
+          ref={hoja}
+          id={idHoja}
+          // relative: los sr-only absolutos de dentro (radios, «abre en otra pestaña») se recortan aquí
+          className="relative mx-2.5 mt-2.5 min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-2xl bg-niebla px-4 pb-5 pt-1 text-tinta"
+        >
+          {modo === "reportar" ? (
+            <FormularioReporte coloniaId={colonia.id} nombre={colonia.nombre} onReportado={alReportar} enfocar />
+          ) : (
+            <>
+              {/* Estado actual, con la explicación completa */}
+              <div className="mt-3 rounded-xl border border-borde bg-white p-3 text-sm" aria-live="polite">
+                <ChipNivel nivel={nivel} />
+                {nivel ? (
+                  <>
+                    {confianza && (
+                      <p className="mt-2">
+                        <strong>{CONFIANZA[confianza].etiqueta}.</strong>{" "}
+                        <span className="text-[#3b4f5c]">{CONFIANZA[confianza].explicacion}</span>
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-texto-tenue">
+                      {n} {n === 1 ? "reporte" : "reportes"} de {huellas}{" "}
+                      {huellas === 1 ? "dispositivo distinto" : "dispositivos distintos"}
+                      {ultimo ? `; el último, ${haceCuanto(ultimo)}` : ""}. Los más recientes pesan más.
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-2 text-[#3b4f5c]">
+                    Aún no hay suficientes reportes de esta colonia para mostrar un nivel.{" "}
+                    <strong>Sin reportes no significa que el agua sea buena</strong>: significa que todavía no sabemos.
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-texto-tenue">
+                  Es lo que reportan vecinos, no una medición oficial ni un análisis de laboratorio.{" "}
+                  <strong>Ningún nivel significa que el agua sea segura para beber:</strong> mira{" "}
+                  <Link href="/que-hacer" className="text-marca underline">qué hacer</Link>.{" "}
+                  <Link href="/metodologia" className="text-marca underline">Cómo se calcula</Link>.
+                </p>
+              </div>
+
+              {/* Serie de 30 días */}
+              <section aria-labelledby="serie-t" className="mt-5">
+                <h3 id="serie-t" className="text-sm font-bold">Últimos 30 días</h3>
+                {carga.estado === "cargando" && (
+                  <p className="mt-2 animate-pulse text-xs text-texto-tenue">Cargando el historial…</p>
+                )}
+                {carga.estado === "error" && (
+                  <p className="mt-2 text-xs text-[#3b4f5c]">
+                    No pudimos cargar el historial ni los reportes publicados.{" "}
+                    <button
+                      type="button"
+                      onClick={() => { setCarga({ estado: "cargando" }); setIntento((i) => i + 1); }}
+                      className="text-marca underline"
+                    >
+                      Reintentar
+                    </button>
+                  </p>
+                )}
+                {rep && rep.serie.length > 0 && <Sparkline serie={rep.serie} />}
+                {rep && rep.serie.length === 0 && (
+                  <p className="mt-2 text-xs text-[#3b4f5c]">Aún no hay reportes de vecinos en los últimos 30 días.</p>
+                )}
+              </section>
+
+              {detalle?.comentarios && <ComentariosVecinos comentarios={detalle.comentarios} />}
+
+              {detalle && <DatosOficiales datos={detalle.oficial} />}
+
+              <Compartir
+                id={colonia.id}
+                nombre={colonia.nombre}
+                municipio={colonia.municipio}
+                etiquetaNivel={nivel ? etiquetaNivel(nivel) : null}
+              />
+
+              <p className="mt-5 text-xs text-texto-tenue">
+                ¿El agua te enferma o ya la reportaste y nadie responde? Mira{" "}
+                <Link href="/que-hacer" className="text-marca underline">qué hacer</Link> y{" "}
+                <Link href="/denunciar" className="text-marca underline">dónde denunciar</Link>.
+              </p>
+              {colonia.fuente_geom && (
+                <p className="mt-2 text-xs text-texto-tenue">
+                  Límites de la colonia: {FUENTES_GEOM[colonia.fuente_geom] ?? "aproximados y no oficiales"}.
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Acciones: en escritorio sigue el buscador; en móvil, compartir */}
+      <div className="flex shrink-0 items-center gap-2 p-2.5">
+        {buscador && <div className="hidden min-w-0 flex-1 items-center gap-2 md:flex">{buscador}</div>}
+        <button
+          type="button"
+          onClick={() => {
+            irACompartir.current = true;
+            setModo("detalle");
+          }}
+          aria-label="Compartir esta colonia"
+          className="flex h-[3.25rem] w-[3.25rem] shrink-0 items-center justify-center rounded-[15px] bg-white/[0.08] text-lg hover:bg-white/15 md:hidden"
+        >
+          <span aria-hidden="true">↗</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => alternar("reportar")}
+          aria-expanded={modo === "reportar"}
+          aria-controls={idHoja}
+          className={`h-[3.25rem] flex-1 rounded-[15px] px-5 text-base font-bold md:h-12 md:flex-none md:text-[0.9375rem] ${
+            modo === "reportar" ? "bg-white/[0.12] text-white hover:bg-white/20" : "bg-acento text-tinta hover:bg-acento-fuerte"
+          }`}
+        >
+          {modo === "reportar" ? "Ver la ficha" : "Reportar esta colonia"}
+        </button>
+      </div>
+    </article>
   );
 }

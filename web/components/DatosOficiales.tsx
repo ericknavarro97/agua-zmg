@@ -59,23 +59,23 @@ function Fila({ d }: { d: DatoOficial }) {
   const indicio = esIndicio(d);
   const avisos = advertencias(d);
   return (
-    <li className={`rounded-lg border-l-4 bg-white p-3 text-sm shadow-sm ring-1 ring-slate-200 ${tipo.clase.split(" ")[0]}`}>
+    <li className={`rounded-xl border-l-4 bg-white p-3 text-sm shadow-sm ring-1 ring-borde ${tipo.clase.split(" ")[0]}`}>
       <p className="flex flex-wrap items-center gap-2">
         <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${tipo.clase}`}>{tipo.etiqueta}</span>
-        <span className="text-xs text-slate-600">{fechaCorta(d.fecha)}</span>
+        <span className="text-xs text-texto-tenue">{fechaCorta(d.fecha)}</span>
       </p>
-      <p className="mt-1 font-semibold text-slate-900">{nombreParametro(d.parametro)}</p>
+      <p className="mt-1 font-semibold text-tinta">{nombreParametro(d.parametro)}</p>
       {tieneValor ? (
-        <p className="text-slate-800">
+        <p className="text-tinta">
           {etiquetaValor(d)}: <strong>{String(d.valor)} {d.unidad ?? ""}</strong>
-          {LIMITES[d.parametro] && !indicio && <span className="block text-xs text-slate-600">{LIMITES[d.parametro]}</span>}
+          {LIMITES[d.parametro] && !indicio && <span className="block text-xs text-texto-tenue">{LIMITES[d.parametro]}</span>}
         </p>
       ) : esListado ? (
-        <p className="text-xs text-slate-700">
+        <p className="text-xs text-[#3b4f5c]">
           Es un listado administrativo (por ejemplo, para descuentos). <strong>No es una medición.</strong>
         </p>
       ) : (
-        <p className="text-xs text-slate-700">La fuente señala el hallazgo pero no publica el valor.</p>
+        <p className="text-xs text-[#3b4f5c]">La fuente señala el hallazgo pero no publica el valor.</p>
       )}
       {avisos.length > 0 && (
         <div className="mt-1 rounded bg-amber-50 p-2 text-xs text-amber-950 ring-1 ring-amber-300">
@@ -85,10 +85,10 @@ function Fila({ d }: { d: DatoOficial }) {
           ))}
         </div>
       )}
-      <p className="mt-1 text-xs text-slate-700">
+      <p className="mt-1 text-xs text-[#3b4f5c]">
         Fuente:{" "}
         {url ? (
-          <a href={url} target="_blank" rel="noopener noreferrer nofollow" className="text-sky-800 underline">
+          <a href={url} target="_blank" rel="noopener noreferrer nofollow" className="text-marca underline">
             {d.fuente}
             <span className="sr-only"> (abre en otra pestaña)</span>
           </a>
@@ -96,7 +96,7 @@ function Fila({ d }: { d: DatoOficial }) {
           d.fuente
         )}
       </p>
-      <p className="text-xs text-slate-600">Vínculo con esta colonia ({d.confianza_vinculo}): {VINCULO[d.confianza_vinculo]}.</p>
+      <p className="text-xs text-texto-tenue">Vínculo con esta colonia ({d.confianza_vinculo}): {VINCULO[d.confianza_vinculo]}.</p>
     </li>
   );
 }
@@ -113,12 +113,12 @@ export default function DatosOficiales({ datos }: { datos: DatoOficial[] }) {
   return (
     <section aria-labelledby="oficial-t" className="mt-5">
       <h3 id="oficial-t" className="text-sm font-bold">Reportes publicados</h3>
-      <p className="mt-1 text-xs text-slate-600">
+      <p className="mt-1 text-xs text-texto-tenue">
         Cada uno trae su fuente y <strong>no cuenta para el nivel de gravedad</strong> de los reportes de vecinos.
         Muchos son listados y no mediciones, y las pruebas ciudadanas son orientativas. Revisa siempre la fuente.
       </p>
       {ordenados.length === 0 ? (
-        <p className="mt-2 rounded-lg bg-slate-100 p-3 text-xs text-slate-700">
+        <p className="mt-2 rounded-xl bg-niebla p-3 text-xs text-[#3b4f5c]">
           No tenemos reportes publicados ligados a esta colonia. Eso no significa que el agua sea buena:
           significa que no hay datos publicados que podamos enlazar.
         </p>
@@ -133,7 +133,7 @@ export default function DatosOficiales({ datos }: { datos: DatoOficial[] }) {
             <button
               type="button"
               onClick={() => setVerTodo(!verTodo)}
-              className="mt-2 inline-flex min-h-6 items-center py-1 text-sm font-medium text-sky-800 underline"
+              className="mt-2 inline-flex min-h-6 items-center py-1 text-sm font-medium text-marca underline"
               aria-expanded={verTodo}
             >
               {verTodo ? "Ver menos" : `Ver los ${ordenados.length} datos`}

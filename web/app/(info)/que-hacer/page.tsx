@@ -1,7 +1,7 @@
 import { SITIO } from "@/lib/sitio";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Aviso, AvisoSalud, Fuente, Indice, Pagina, SegunMedios, Tel } from "@/components/Info";
+import { Aviso, AvisoSalud, Fuente, Pagina, SegunMedios, Tel } from "@/components/Info";
 import { F } from "@/components/fuentes";
 
 export const metadata: Metadata = {
@@ -33,6 +33,8 @@ const INDICE = [
 export default function QueHacer() {
   return (
     <Pagina
+      etiqueta="Qué hacer · Guía con fuentes"
+      indice={INDICE}
       titulo="Qué hacer si tu agua sale turbia o sospechosa"
       resumen="Pasos sencillos con fuentes. Última verificación de las fuentes: 8 de octubre de 2026."
     >
@@ -45,7 +47,7 @@ export default function QueHacer() {
       </Aviso>
 
       <h2 id="primero">Lo más importante</h2>
-      <Aviso tono="info" titulo="Si el agua de tu llave sale turbia, de color raro o con mal olor">
+      <Aviso tono="destacado" titulo="Si el agua de tu llave sale turbia, de color raro o con mal olor">
         <ol className="list-decimal space-y-2 pl-5">
           <li>
             Para tomar, cocinar y lavarte los dientes, usa agua de garrafón o purificada. Es la recomendación de la
@@ -75,8 +77,6 @@ export default function QueHacer() {
           </li>
         </ol>
       </Aviso>
-
-      <Indice items={INDICE} plegable />
 
       <div id="aviso">
         <AvisoSalud />

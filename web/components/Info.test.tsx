@@ -11,7 +11,7 @@ describe("Fuente", () => {
   });
   it("con texto propio conserva ese texto", () => {
     const html = renderToStaticMarkup(Fuente({ href: F.epaPlomo, children: "EPA" }));
-    expect(html).toContain("[EPA");
+    expect(html).toContain('class="fuente">EPA');
     expect(html).not.toContain("EPA, plomo");
   });
 });

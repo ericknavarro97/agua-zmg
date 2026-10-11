@@ -14,16 +14,16 @@ export default function ComentariosVecinos({ comentarios }: { comentarios: Comen
   return (
     <section aria-labelledby="coment-t" className="mt-5">
       <h3 id="coment-t" className="text-sm font-bold">Lo que cuentan los vecinos</h3>
-      <p className="mt-1 text-xs text-slate-600">Comentarios de personas que reportaron, sin verificar. Pueden contener errores.</p>
+      <p className="mt-1 text-xs text-texto-tenue">Comentarios de personas que reportaron, sin verificar. Pueden contener errores.</p>
       <ul className="mt-2 space-y-2">
         {mostrados.map((c, i) => (
-          <li key={`${c.dia}-${i}`} className="rounded-lg bg-white p-3 text-sm shadow-sm ring-1 ring-slate-200">
-            <p className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+          <li key={`${c.dia}-${i}`} className="rounded-xl bg-white p-3 text-sm shadow-sm ring-1 ring-borde">
+            <p className="flex flex-wrap items-center gap-2 text-xs text-texto-tenue">
               <Muestra nivel={c.gravedad} />
-              <span className="font-medium text-slate-800">{etiquetaNivel(c.gravedad)}</span>
+              <span className="font-medium text-tinta">{etiquetaNivel(c.gravedad)}</span>
               <span>· {fechaCorta(c.dia)}</span>
             </p>
-            <p className="mt-1 whitespace-pre-line break-words text-slate-900">{c.texto}</p>
+            <p className="mt-1 whitespace-pre-line break-words text-tinta">{c.texto}</p>
           </li>
         ))}
       </ul>
@@ -31,7 +31,7 @@ export default function ComentariosVecinos({ comentarios }: { comentarios: Comen
         <button
           type="button"
           onClick={() => setVerTodo(!verTodo)}
-          className="mt-2 inline-flex min-h-6 items-center py-1 text-sm font-medium text-sky-800 underline"
+          className="mt-2 inline-flex min-h-6 items-center py-1 text-sm font-medium text-marca underline"
           aria-expanded={verTodo}
         >
           {verTodo ? "Ver menos" : `Ver los ${comentarios.length} comentarios`}

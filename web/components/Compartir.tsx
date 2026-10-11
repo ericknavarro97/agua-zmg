@@ -51,12 +51,12 @@ export default function Compartir({
 
   const wa = `https://wa.me/?text=${encodeURIComponent(`${texto} ${url}`)}`;
   const boton =
-    "inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-400 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50";
+    "inline-flex min-h-11 items-center justify-center rounded-xl border border-[#b9c6cf] bg-white px-3 py-2 text-sm font-medium text-tinta hover:bg-niebla";
 
   return (
     <section aria-labelledby="compartir-t" className="mt-5">
       <h3 id="compartir-t" className="text-sm font-bold">Avisa a tus vecinos</h3>
-      <p className="mt-1 text-xs text-slate-600">Mientras más vecinos reporten, más confiable es el mapa.</p>
+      <p className="mt-1 text-xs text-texto-tenue">Mientras más vecinos reporten, más confiable es el mapa.</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {puedeCompartir && (
           <button type="button" onClick={compartir} className={boton}>
@@ -71,7 +71,7 @@ export default function Compartir({
           Copiar enlace
         </button>
       </div>
-      <p role="status" className="mt-1 min-h-4 text-xs text-slate-700">
+      <p role="status" className="mt-1 min-h-4 text-xs text-[#3b4f5c]">
         {copiado === "si" && "Enlace copiado."}
         {copiado === "no" && `No se pudo copiar. El enlace es: ${url}`}
       </p>

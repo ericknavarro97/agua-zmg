@@ -70,8 +70,8 @@ export default function Sparkline({ serie }: { serie: PuntoSerie[] }) {
         {/* Líneas guía de cada nivel */}
         {[1, 2, 3, 4].map((n) => (
           <g key={n}>
-            <line x1={PAD.l} x2={W - PAD.r} y1={y(n)} y2={y(n)} stroke="#e2e8f0" strokeWidth={1} />
-            <text x={PAD.l - 5} y={y(n) + 3} textAnchor="end" fontSize={9} fill="#475569">
+            <line x1={PAD.l} x2={W - PAD.r} y1={y(n)} y2={y(n)} stroke="#d9e0e5" strokeWidth={1} />
+            <text x={PAD.l - 5} y={y(n) + 3} textAnchor="end" fontSize={9} fill="#52646f">
               {GRAVEDADES[n - 1].etiqueta}
             </text>
           </g>
@@ -85,13 +85,13 @@ export default function Sparkline({ serie }: { serie: PuntoSerie[] }) {
               y={baseY - (d.n / maxN) * 14}
               width={4}
               height={(d.n / maxN) * 14}
-              fill="#94a3b8"
+              fill="#9fb3c2"
               opacity={0.7}
             />
           ) : null,
         )}
         {tramos.map((t, i) => (
-          <path key={i} d={t} fill="none" stroke="#0f172a" strokeWidth={1.5} strokeLinejoin="round" />
+          <path key={i} d={t} fill="none" stroke="#0b2233" strokeWidth={1.5} strokeLinejoin="round" />
         ))}
         {dias.map((d, i) =>
           d.n > 0 && d.score != null ? (
@@ -101,20 +101,20 @@ export default function Sparkline({ serie }: { serie: PuntoSerie[] }) {
               cy={y(d.score)}
               r={3.2}
               fill={GRAVEDADES[(nivelDeScore(d.score) ?? 1) - 1].color}
-              stroke="#0f172a"
+              stroke="#0b2233"
               strokeWidth={1}
             />
           ) : null,
         )}
-        <text x={PAD.l} y={H - 5} fontSize={9} fill="#475569">hace 30 días</text>
-        <text x={W - PAD.r} y={H - 5} textAnchor="end" fontSize={9} fill="#475569">hoy</text>
+        <text x={PAD.l} y={H - 5} fontSize={9} fill="#52646f">hace 30 días</text>
+        <text x={W - PAD.r} y={H - 5} textAnchor="end" fontSize={9} fill="#52646f">hoy</text>
       </svg>
-      <figcaption className="mt-1 text-xs text-slate-600">
+      <figcaption className="mt-1 text-xs text-texto-tenue">
         {resumen} Las barras grises muestran cuántos reportes hubo cada día.
       </figcaption>
       {conDatos.length > 0 && (
         <details className="mt-1 text-xs">
-          <summary className="cursor-pointer py-1 text-sky-800 underline">Ver los datos en tabla</summary>
+          <summary className="cursor-pointer py-1 text-marca underline">Ver los datos en tabla</summary>
           <table className="mt-2 w-full border-collapse text-left">
             <caption className="sr-only">Reportes por día en los últimos 30 días</caption>
             <thead>

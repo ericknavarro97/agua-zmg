@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 export default function Acerca() {
   return (
     <Pagina
+      etiqueta="Acerca de"
       titulo="Acerca de Agua ZMG"
       resumen="Un mapa ciudadano de cómo llega el agua a cada colonia de la Zona Metropolitana de Guadalajara."
     >
@@ -23,7 +24,8 @@ export default function Acerca() {
       </p>
 
       <h2>Lo que prometemos</h2>
-      <ul>
+      {/* Tarjetas: la frase en negrita es el título de cada una */}
+      <ul className="tarjetas">
         <li>
           <strong>No es un sitio de gobierno.</strong> Es un proyecto ciudadano: no sustituye ni contradice a ninguna
           autoridad ni a un laboratorio. Cuando mostramos un dato publicado por una autoridad, lleva la etiqueta

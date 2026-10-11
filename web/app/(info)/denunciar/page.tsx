@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Aviso, Fuente, Indice, Pagina, SegunMedios, Tel } from "@/components/Info";
+import { Aviso, Fuente, Pagina, SegunMedios, Tel } from "@/components/Info";
 import { F } from "@/components/fuentes";
 
 export const metadata: Metadata = {
@@ -22,10 +22,11 @@ const INDICE = [
 export default function Denunciar() {
   return (
     <Pagina
+      etiqueta="Denunciar · Canales verificados"
+      indice={INDICE}
       titulo="Dónde reportar o denunciar"
       resumen="Solo incluimos contactos que revisamos en el sitio oficial de cada institución el 8 de octubre de 2026. Pueden cambiar: confirma siempre en el enlace oficial."
     >
-      <Indice items={INDICE} />
 
       <Aviso tono="info" titulo="Antes de llamar">
         <p>

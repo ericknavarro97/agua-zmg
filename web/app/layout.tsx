@@ -1,7 +1,25 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
 import "./globals.css";
-import NavPrincipal from "@/components/NavPrincipal";
-import PieSitio from "@/components/PieSitio";
+
+// Fuentes alojadas en el repo (app/fuentes, licencia OFL): el build no descarga nada y quien visita no contacta a Google.
+// Solo el subconjunto latino (incluye á, é, ñ, ¿, ¡): ~77 KB la de texto (variable) y ~10 KB cada peso de la mono.
+const fuenteTexto = localFont({
+  src: "./fuentes/BricolageGrotesque-latin.woff2",
+  weight: "400 700",
+  display: "swap",
+  variable: "--fuente-texto",
+});
+const fuenteMono = localFont({
+  src: [
+    { path: "./fuentes/IBMPlexMono-400-latin.woff2", weight: "400" },
+    { path: "./fuentes/IBMPlexMono-500-latin.woff2", weight: "500" },
+  ],
+  display: "swap",
+  variable: "--fuente-mono",
+  // La mono solo aparece en etiquetas pequeñas: no vale la pena precargarla
+  preload: false,
+});
 
 // URL pública del sitio (para enlaces absolutos de Open Graph). Configúrala en producción.
 // `||` y no `??`: una variable definida pero vacía (`NEXT_PUBLIC_SITE_URL=`) haría `new URL("")` y tumbaría todas las páginas.
@@ -40,24 +58,23 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0c4a6e",
+  themeColor: "#0b2233",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es-MX" className="h-full antialiased">
+    <html lang="es-MX" className={`${fuenteTexto.variable} ${fuenteMono.variable} h-full antialiased`}>
       <body className="flex min-h-dvh flex-col">
         <a
           href="#contenido"
-          className="salto sr-only rounded-md bg-white px-4 py-2 font-medium text-slate-900 shadow focus:not-sr-only"
+          className="salto sr-only rounded-full bg-white px-4 py-2 font-medium text-tinta shadow focus:not-sr-only"
         >
           Saltar al contenido
         </a>
-        <NavPrincipal />
+        {/* Cada sección pone su navegación: el mapa la lleva flotando sobre él, las páginas informativas arriba */}
         {children}
-        <PieSitio />
       </body>
     </html>
   );

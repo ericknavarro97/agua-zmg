@@ -1,9 +1,10 @@
 import { SITIO } from "@/lib/sitio";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Aviso, Fuente, Indice, Pagina } from "@/components/Info";
+import { Aviso, Fuente, Pagina } from "@/components/Info";
 import { F } from "@/components/fuentes";
 import { Muestra } from "@/components/niveles";
+import { METODO } from "@/lib/aggregation";
 import { GRAVEDADES } from "@/lib/severity";
 
 export const metadata: Metadata = {
@@ -30,10 +31,11 @@ const INDICE = [
 export default function Metodologia() {
   return (
     <Pagina
+      etiqueta={`Metodología · Método ${METODO}`}
+      indice={INDICE}
       titulo="Metodología: cómo se calcula el mapa"
       resumen="Publicamos las reglas y los números para que cualquiera pueda revisarlos. Método vigente: «v1»."
     >
-      <Indice items={INDICE} />
 
       <h2 id="que-es">Qué es y qué NO es</h2>
       <ul>
@@ -56,9 +58,9 @@ export default function Metodologia() {
 
       <h2 id="niveles">Los cuatro niveles</h2>
       <p>Cada reporte es una respuesta a «¿cómo llega el agua a tu casa hoy?». En el mapa, cada nivel tiene color, trama y nombre:</p>
-      <ul className="!list-none !pl-0">
+      <ul className="!list-none !gap-0 divide-y divide-[#e6ebef] overflow-hidden rounded-[18px] border border-borde bg-white !pl-0">
         {GRAVEDADES.map((g) => (
-          <li key={g.nivel} className="flex items-start gap-3">
+          <li key={g.nivel} className="flex items-start gap-3.5 px-4 py-3.5">
             <Muestra nivel={g.nivel} grande />
             <span>
               <strong>
@@ -68,7 +70,7 @@ export default function Metodologia() {
             </span>
           </li>
         ))}
-        <li className="flex items-start gap-3">
+        <li className="flex items-start gap-3.5 px-4 py-3.5">
           <Muestra nivel={null} grande />
           <span>
             <strong>Sin datos suficientes.</strong> Aún no hay reportes bastantes para publicar un nivel.
@@ -128,6 +130,7 @@ export default function Metodologia() {
         la evidencia efectiva (no con el número bruto de reportes), los días distintos en que hubo reportes y las redes
         distintas de las que vinieron.
       </p>
+      <div className="tabla">
       <table>
         <thead>
           <tr>
@@ -163,6 +166,7 @@ export default function Metodologia() {
           </tr>
         </tbody>
       </table>
+      </div>
       <p>
         Incluso con confianza alta, el mapa refleja <em>lo que reportan vecinos</em>, no un análisis de laboratorio.
       </p>
