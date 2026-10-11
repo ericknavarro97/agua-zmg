@@ -4,9 +4,10 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { pool } from "@/lib/db";
-import { bitacora, colaRevision, resumenModeracion, type ReporteAdmin } from "@/lib/moderation";
+import { bitacora, colaRevision, reportesRecientes, resumenModeracion, type ReporteAdmin } from "@/lib/moderation";
 import { COOKIE_SESION, adminHabilitado, sesionValida } from "../api/admin/auth";
 import { Acciones, BuscarColonia, LoginForm, Salir } from "./Acciones";
+import TablaReportes from "./TablaReportes";
 
 export const metadata: Metadata = {
   title: "Moderación · Agua ZMG",
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 // Panel mínimo de moderación (server-side). Protegido por ADMIN_TOKEN: sin él, la página no existe (404).
 export default function AdminPage() {
   return (
-    <main id="contenido" className="mx-auto w-full max-w-4xl p-4 text-sm">
+    <main id="contenido" className="mx-auto w-full max-w-6xl p-4 text-sm">
       <h1 className="mb-1 text-xl font-semibold">Moderación</h1>
       <p className="mb-4 text-slate-600">
         Los reportes en revisión no cuentan en el mapa hasta que una persona decida. Se oculta por <strong>cómo</strong> llegó
@@ -39,7 +40,9 @@ async function Panel() {
   }
   if (!sesionValida(sesion)) return <LoginForm />;
 
-  const [resumen, cola, bit] = await Promise.all([resumenModeracion(pool), colaRevision(pool), bitacora(pool)]);
+  const [resumen, cola, bit, recientes] = await Promise.all([
+    resumenModeracion(pool), colaRevision(pool), bitacora(pool), reportesRecientes(pool, 200),
+  ]);
   const porColonia = new Map<number, ReporteAdmin[]>();
   for (const r of cola) porColonia.set(r.colonia_id, [...(porColonia.get(r.colonia_id) ?? []), r]);
 
@@ -79,6 +82,9 @@ async function Panel() {
           <Acciones reportes={JSON.parse(JSON.stringify(rs))} />
         </section>
       ))}
+
+      <h2 className="mb-2 mt-6 text-lg font-semibold">Todos los reportes</h2>
+      <TablaReportes reportes={JSON.parse(JSON.stringify(recientes.reportes))} total={recientes.total} />
 
       <h2 className="mb-2 mt-6 text-lg font-semibold">Ver reportes de una colonia</h2>
       <BuscarColonia />

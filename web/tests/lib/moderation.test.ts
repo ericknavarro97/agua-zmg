@@ -6,7 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calcularScores, invalidarCacheScores, scoresConCache } from "../../lib/aggregation";
 import {
   RAFAGA, aplicarRafaga, bitacora, colaRevision, evaluarRafaga, limpiarComentario, moderar, rafagaEnCurso,
-  reportesDeColonia, reportesOfensores, resumenModeracion, veredictoRafaga,
+  reportesDeColonia, reportesOfensores, reportesRecientes, resumenModeracion, veredictoRafaga,
 } from "../../lib/moderation";
 import { crearBase, insertarColonia, insertarReporte, type BaseTemporal } from "./_db";
 
@@ -337,5 +337,23 @@ describe("lecturas del panel de administración", () => {
     const a = await nuevo({ hace_horas: 5 });
     const b = await nuevo({ hace_horas: 1, estado: "oculto" });
     expect((await reportesDeColonia(bd.pool, col)).map((r) => r.id)).toEqual([b, a]);
+  });
+  it("reportesRecientes lista todas las colonias y estados, del más reciente al más antiguo, con comentario y sin identificadores", async () => {
+    const otra = await insertarColonia(bd.pool, "Otra colonia");
+    const a = await nuevo({ hace_horas: 5, comentario: "comentario uno", huella: "SECRETA-huella", red_hash: "SECRETA-red" });
+    const b = await insertarReporte(bd.pool, { colonia_id: otra, hace_horas: 3, estado: "oculto" });
+    const c = await nuevo({ hace_horas: 1, estado: "revision" });
+    const { reportes, total } = await reportesRecientes(bd.pool);
+    expect(reportes.map((r) => r.id)).toEqual([c, b, a]);
+    expect(total).toBe(3);
+    expect(reportes.find((r) => r.id === a)).toMatchObject({ comentario: "comentario uno", colonia: "Lomas" });
+    expect(reportes.find((r) => r.id === b)).toMatchObject({ colonia: "Otra colonia", estado: "oculto" });
+    expect(JSON.stringify(reportes)).not.toContain("SECRETA");
+  });
+  it("reportesRecientes respeta el límite pero informa el total", async () => {
+    for (let i = 0; i < 5; i++) await nuevo({ hace_horas: i });
+    const { reportes, total } = await reportesRecientes(bd.pool, 2);
+    expect(reportes).toHaveLength(2);
+    expect(total).toBe(5);
   });
 });

@@ -350,6 +350,19 @@ export async function colaRevision(db: Db, limite = 200): Promise<ReporteAdmin[]
   return rows;
 }
 
+/** Los reportes más recientes de TODAS las colonias (cualquier estado) para la tabla del panel, y cuántos hay en total. */
+export async function reportesRecientes(db: Db, limite = 200): Promise<{ reportes: ReporteAdmin[]; total: number }> {
+  const [{ rows }, tot] = await Promise.all([
+    db.query<ReporteAdmin>(
+      `SELECT ${COLS_REPORTE} FROM reportes r JOIN colonias c ON c.id = r.colonia_id
+        ORDER BY r.creado_en DESC, r.id DESC LIMIT $1`,
+      [limite],
+    ),
+    db.query<{ n: number }>("SELECT count(*)::int AS n FROM reportes"),
+  ]);
+  return { reportes: rows, total: tot.rows[0].n };
+}
+
 /** Reportes de una colonia (cualquier estado), los más recientes primero. */
 export async function reportesDeColonia(db: Db, coloniaId: number, limite = 100): Promise<ReporteAdmin[]> {
   const { rows } = await db.query<ReporteAdmin>(
