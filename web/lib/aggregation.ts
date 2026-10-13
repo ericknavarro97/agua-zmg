@@ -1,5 +1,5 @@
 /**
- * Agregación robusta de reportes ciudadanos -> score por colonia (método "v1").
+ * Agregación robusta de reportes ciudadanos -> score por colonia (método "v2").
  * Ver docs/research/anti-abuso.md §6. El cálculo es una función pura (`agregar`) que se prueba sin base;
  * el SQL solo prepara grupos compactos (colonia, día, red, gravedad) para no traer cada reporte.
  *
@@ -16,7 +16,9 @@
  *  4. Contracción bayesiana hacia un prior: lambda = n_eff / (n_eff + C); score = lambda*recortada + (1-lambda)*prior.
  *     El prior es la media recortada global de colonias reales con n_eff >= 6, acotada a [1.5, 2.5]
  *     (un atacante no puede moverla fuera de ese rango).
- *  5. Publicable: n_eff >= 3 Y al menos 3 HUELLAS distintas (no basta con 3 filas).
+ *  5. Publicable: n_eff >= 1 (un reporte completo; uno enviado en < 5 s pesa 0.5 y por sí solo no alcanza).
+ *     Desde v2 basta UN reporte: la contracción del paso 4 evita que decida solo el color, y la confianza
+ *     "baja" (n_eff < 6) lo pinta tenue y con trama.
  *  6. Confianza: baja / media / alta con los umbrales de PARAMS.confianza.
  *
  * LÍMITE CONOCIDO: quien aparente ser muchos vecinos distintos (muchas redes, tiempos humanos, varios
@@ -25,7 +27,7 @@
 import type { Pool } from "pg";
 import { VENTANA_DIAS, VIDA_MEDIA_DIAS } from "./severity";
 
-export const METODO = "v1";
+export const METODO = "v2";
 
 export const PARAMS = {
   ventanaDias: VENTANA_DIAS,
@@ -46,9 +48,9 @@ export const PARAMS = {
   fConcentrada: 0.25,
   rapidoMs: 5000,
   fRapido: 0.5,
-  /** Para publicar una colonia en el mapa. */
-  minEvidencia: 3,
-  minHuellas: 3,
+  /** Para publicar una colonia en el mapa (v2: desde un reporte; antes 3 y 3). */
+  minEvidencia: 1,
+  minHuellas: 1,
   confianza: {
     /** n_eff por debajo de esto: confianza baja (el color puede variar un nivel entero con tan pocos datos). */
     mediaNEff: 6,

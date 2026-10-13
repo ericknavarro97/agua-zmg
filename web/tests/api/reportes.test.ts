@@ -63,8 +63,8 @@ describe("POST /api/reportes: caso válido", () => {
   });
 
   it("un reporte válido aparece enseguida en el cálculo (se invalida la caché de scores)", async () => {
-    // 3 vecinos distintos: el mínimo para publicar
-    for (let i = 0; i < 3; i++) await POST(post("/api/reportes", cuerpoValido(col, { gravedad: 3 })));
+    // basta un reporte para que la colonia aparezca
+    for (let i = 0; i < 1; i++) await POST(post("/api/reportes", cuerpoValido(col, { gravedad: 3 })));
     const lista = await json<{ id: number }[]>(await scores());
     expect(lista.map((s) => s.id)).toContain(col);
   });

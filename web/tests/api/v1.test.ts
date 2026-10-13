@@ -112,17 +112,22 @@ describe("GET /api/v1/colonias", () => {
     expect(fc.metadata.n_colonias).toBe(fc.features.length);
   });
 
-  it("las colonias sin mínimo publicable tienen todo en null (no se publica '1 reporte')", async () => {
+  it("las colonias sin reportes tienen todo en null", async () => {
     const fc = await json<FC>(await gj());
-    for (const id of [sinDatos, formula]) {
-      const f = fc.features.find((x) => x.id === id)!;
-      expect(f.properties).toMatchObject({ score: null, nivel: null, confianza: null, n: null, n_huellas: null, ultimo: null });
-    }
+    const f = fc.features.find((x) => x.id === sinDatos)!;
+    expect(f.properties).toMatchObject({ score: null, nivel: null, confianza: null, n: null, n_huellas: null, ultimo: null });
   });
 
-  it("?con_datos=1 deja solo las colonias publicables", async () => {
+  it("una colonia con un solo reporte ya se publica, con confianza baja", async () => {
+    const fc = await json<FC>(await gj());
+    const f = fc.features.find((x) => x.id === formula)!;
+    expect(f.properties).toMatchObject({ n: 1, n_huellas: 1, confianza: "baja" });
+    expect(f.properties.nivel).not.toBeNull();
+  });
+
+  it("?con_datos=1 deja solo las colonias con reportes", async () => {
     const fc = await json<FC>(await gj("?con_datos=1"));
-    expect(fc.features.map((f) => f.id)).toEqual([fresno]);
+    expect(fc.features.map((f) => f.id).sort()).toEqual([fresno, formula].sort());
   });
 
   it("?sin_geometria=1 devuelve geometry null y pesa menos", async () => {
@@ -195,9 +200,15 @@ describe("GET /api/v1/colonias/[id]", () => {
     expect(d.oficial[0]).toMatchObject({ fuente: "CEDHJ", confianza_vinculo: "alta" });
   });
 
-  it("colonia sin mínimo publicable: n/score null y serie vacía", async () => {
-    const d = await json(await det(formula));
+  it("colonia sin reportes: n/score null y serie vacía", async () => {
+    const d = await json(await det(sinDatos));
     expect(d.reportes).toMatchObject({ n: null, score: null, nivel: null, confianza: null, serie: [] });
+  });
+
+  it("colonia con un solo reporte: ya trae agregados, con confianza baja", async () => {
+    const d = await json(await det(formula));
+    expect(d.reportes).toMatchObject({ n: 1, confianza: "baja" });
+    expect(d.reportes.serie).toHaveLength(1);
   });
 
   it.each(["abc", "1.5", "-1", "1234567890", "1e3"])("400 con id %j", async (id) => {
@@ -243,7 +254,7 @@ describe("GET /api/v1/resumen.csv", () => {
   });
 
   it("?con_datos=1 y ?municipio= funcionan; municipio desconocido: 400", async () => {
-    expect(filas(await texto(await csv("?con_datos=1")))).toHaveLength(2);
+    expect(filas(await texto(await csv("?con_datos=1")))).toHaveLength(3);
     expect(filas(await texto(await csv("?municipio=Tonala")))).toHaveLength(3);
     expect((await csv("?municipio=Narnia")).status).toBe(400);
   });

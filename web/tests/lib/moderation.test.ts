@@ -190,8 +190,8 @@ describe("moderar()", () => {
     const ids: number[] = [];
     for (let i = 0; i < 4; i++) ids.push(await nuevo({ red_hash: `r${i}`, red_sem: `s${i}`, hace_horas: 1 + i }));
     expect(await calcularScores(bd.pool)).toHaveLength(1);
-    await moderar(bd.pool, ids.slice(0, 2), "degradar", "sistema", "ráfaga sospechosa en revisión");
-    expect(await calcularScores(bd.pool)).toHaveLength(0); // quedan 2 huellas < 3
+    await moderar(bd.pool, ids, "degradar", "sistema", "ráfaga sospechosa en revisión");
+    expect(await calcularScores(bd.pool)).toHaveLength(0); // no queda ningún reporte contable
   });
 });
 

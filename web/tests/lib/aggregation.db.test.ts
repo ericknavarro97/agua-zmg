@@ -52,7 +52,7 @@ describe("qué reportes cuentan", () => {
     await vecinos(c, 4, { hace_horas: 24 * 5 });
     expect((await calcularScores(bd.pool))[0].n).toBe(4);
   });
-  it("menos de 3 huellas distintas: no se publica aunque haya muchas filas", async () => {
+  it("pocas huellas distintas: se publica igual, con las huellas contadas bien", async () => {
     const c = await insertarColonia(bd.pool, "Lomas");
     for (let i = 0; i < 6; i++) {
       await insertarReporte(bd.pool, { colonia_id: c, huella: i < 3 ? `a` : `b`, red_hash: `r${i}`, red_sem: `s${i}`, hace_horas: i * 30 });
@@ -60,7 +60,9 @@ describe("qué reportes cuentan", () => {
     // misma huella, el índice único (colonia, huella, dia) permite una por día: la fila 0..2 comparten huella
     const r = await cargarResumen(bd.pool);
     expect(r.get(c)!.nHuellas).toBe(2);
-    expect(await calcularScores(bd.pool)).toEqual([]);
+    const s = await calcularScores(bd.pool);
+    expect(s).toHaveLength(1);
+    expect(s[0].nHuellas).toBe(2);
   });
   it("filas sin huella (anonimizadas) cuentan como una huella cada una", async () => {
     const c = await insertarColonia(bd.pool, "Lomas");

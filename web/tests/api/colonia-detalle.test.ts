@@ -86,21 +86,27 @@ describe("GET /api/colonias/[id]: contrato", () => {
     expect(d.reportes.n_huellas).toBe(s.n_huellas);
   });
 
-  it("antes del mínimo publicable no hay agregados (n, n_huellas, score, nivel) pero sí la gráfica de reportes por día", async () => {
+  it("sin reportes no hay agregados ni gráfica", async () => {
     const c = await crearColonia();
-    await sembrarVecinos(c, 4, 2);
     const d = await json(await detalle(c));
-    expect(d.reportes).toMatchObject({ n: null, n_huellas: null, score: null, nivel: null, confianza: null, ultimo: null });
-    expect(d.reportes.serie.reduce((a: number, p: { n: number }) => a + p.n, 0)).toBe(2);
+    expect(d.reportes).toMatchObject({ n: null, n_huellas: null, score: null, nivel: null, confianza: null, ultimo: null, serie: [] });
   });
 
-  it("con un solo reporte la gráfica ya muestra el día, pero el nivel y los agregados siguen sin publicarse", async () => {
+  it("con un solo reporte ya hay nivel y agregados (confianza baja) y la gráfica muestra el día", async () => {
     const c = await crearColonia();
     await sembrar({ colonia: c, gravedad: 4, edadDias: 0.01 });
     const d = await json(await detalle(c));
-    expect(d.reportes.n).toBeNull();
-    expect(d.reportes.nivel).toBeNull();
+    expect(d.reportes).toMatchObject({ n: 1, n_huellas: 1, confianza: "baja" });
+    expect(d.reportes.nivel).not.toBeNull();
     expect(d.reportes.serie).toHaveLength(1);
+    expect(d.reportes.serie[0].n).toBe(1);
+  });
+
+  it("un reporte enviado en menos de 5 s no publica nivel, pero la gráfica sí lo cuenta", async () => {
+    const c = await crearColonia();
+    await sembrar({ colonia: c, gravedad: 4, edadDias: 0.01, tiempoMs: 1000 });
+    const d = await json(await detalle(c));
+    expect(d.reportes.nivel).toBeNull();
     expect(d.reportes.serie[0].n).toBe(1);
   });
 

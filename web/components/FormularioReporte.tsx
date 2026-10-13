@@ -127,8 +127,8 @@ export default function FormularioReporte({
           {estado === "ok" ? "¡Gracias! Recibimos tu reporte." : "Listo, actualizamos tu reporte de hoy."}
         </p>
         <p className="mt-1">
-          Cada colonia se pinta cuando reúne suficientes reportes de personas distintas, así que puede tardar en verse.
-          Comparte el mapa con tus vecinos: mientras más reportes, más confiable es el color.
+          Tu reporte ya cuenta en el mapa: con pocos reportes el color se ve tenue, y se afirma conforme más vecinos
+          reportan. Comparte el mapa con tus vecinos: mientras más reportes, más confiable es el color.
         </p>
       </div>
     );

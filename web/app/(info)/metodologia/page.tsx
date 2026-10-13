@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     "Cómo se calcula el nivel de cada colonia, qué significan los niveles de confianza, qué evita que unos pocos dominen el mapa y qué límites tiene. No es dato oficial ni consejo médico.",
 };
 
-// Los números de esta página salen de web/lib/aggregation.ts (PARAMS, método "v1"). Si cambias un parámetro allí,
+// Los números de esta página salen de web/lib/aggregation.ts (PARAMS, método "v2"). Si cambias un parámetro allí,
 // sube METODO y actualiza esta tabla: la página debe decir lo mismo que hace el código.
 
 const INDICE = [
@@ -34,7 +34,7 @@ export default function Metodologia() {
       etiqueta={`Metodología · Método ${METODO}`}
       indice={INDICE}
       titulo="Metodología: cómo se calcula el mapa"
-      resumen="Publicamos las reglas y los números para que cualquiera pueda revisarlos. Método vigente: «v1»."
+      resumen="Publicamos las reglas y los números para que cualquiera pueda revisarlos. Método vigente: «v2» (desde v2 basta un reporte para publicar; en v1 se necesitaban tres)."
     >
 
       <h2 id="que-es">Qué es y qué NO es</h2>
@@ -52,7 +52,7 @@ export default function Metodologia() {
         </li>
         <li>
           <strong>Sin reportes no significa agua buena.</strong> Una colonia gris solo quiere decir que todavía no hay
-          suficientes reportes para publicar un nivel.
+          reportes que publicar.
         </li>
       </ul>
 
@@ -73,7 +73,7 @@ export default function Metodologia() {
         <li className="flex items-start gap-3.5 px-4 py-3.5">
           <Muestra nivel={null} grande />
           <span>
-            <strong>Sin datos suficientes.</strong> Aún no hay reportes bastantes para publicar un nivel.
+            <strong>Sin datos suficientes.</strong> Aún no hay reportes de vecinos en esa colonia.
           </span>
         </li>
       </ul>
@@ -105,12 +105,14 @@ export default function Metodologia() {
         </li>
         <li>
           <strong>Contracción hacia un valor de partida.</strong> Con pocos reportes, el resultado se acerca a un valor
-          neutro (entre 1.5 y 2.5; 2.0 si no hay datos). Con más evidencia, ese efecto desaparece. Evita que 3 reportes
-          decidan solos el color.
+          neutro (entre 1.5 y 2.5; 2.0 si no hay datos). Con más evidencia, ese efecto desaparece. Evita que un solo
+          reporte decida el color: uno solo mueve la colonia hacia su gravedad, pero no hasta el extremo, y cada reporte
+          nuevo la acerca al promedio de los vecinos.
         </li>
         <li>
-          <strong>Mínimo para publicar.</strong> Se necesita el equivalente a al menos 3 reportes completos de evidencia y
-          que vengan de al menos 3 dispositivos distintos. Con menos, la colonia se queda en gris.
+          <strong>Mínimo para publicar.</strong> Basta un reporte (o el equivalente: un formulario enviado en menos de 5
+          segundos pesa la mitad, así que se necesitan dos). Con pocos reportes el color sale tenue y con trama, con
+          confianza baja, y no cuenta como colonia «afectada» en el resumen. Sin ningún reporte, la colonia se queda en gris.
         </li>
         <li>
           El color es el promedio resultante redondeado al nivel entero más cercano (1 a 4).

@@ -261,14 +261,14 @@ describe("admin: moderación", () => {
 
   it("ocultar saca los reportes del score, restaurar los devuelve, y todo queda en la bitácora", async () => {
     const col = await crearColonia();
-    await sembrarVecinos(col, 3, 6, { dias: 2 });
+    await sembrarVecinos(col, 3, 4, { dias: 2 });
     expect((await lista()).map((s) => s.id)).toContain(col);
     const todos = await ids();
 
     const o = await mod({ accion: "ocultar", ids: todos.slice(0, 4), motivo: "reportes copiados entre sí", alias: "marta" });
     expect(o.status).toBe(200);
     expect(await json(o)).toEqual({ cambiados: 4 });
-    expect((await lista()).map((s) => s.id)).not.toContain(col); // quedan 2 visibles: ya no se publica
+    expect((await lista()).map((s) => s.id)).not.toContain(col); // no queda ningún reporte visible: ya no se publica
 
     const antes = (await db.query("SELECT count(*)::int AS n FROM moderacion_log")).rows[0].n;
     const r = await mod({ accion: "restaurar", ids: todos.slice(0, 4), motivo: "se revisó y eran vecinos reales", alias: "marta" });

@@ -40,15 +40,13 @@ describe("recortada", () => {
 });
 
 describe("agregar: publicación mínima", () => {
-  it("2 reportes críticos no se publican", () => {
-    expect(agregar(vecinos(1, 4, 2, 2), resumen(vecinos(1, 4, 2, 2)))).toHaveLength(0);
+  it("desde v2 basta un reporte para publicar, con confianza baja", () => {
+    const s = agregar(vecinos(1, 4, 1, 1), resumen(vecinos(1, 4, 1, 1)));
+    expect(s).toHaveLength(1);
+    expect(s[0].confianza).toBe("baja");
   });
-  it("exige 3 huellas distintas aunque haya evidencia suficiente", () => {
-    const gs = vecinos(1, 3, 4, 2);
-    const r = new Map([[1, { n: 4, nHuellas: 2, ultimoMs: 0 }]]);
-    expect(agregar(gs, r)).toHaveLength(0);
-    r.set(1, { n: 4, nHuellas: 3, ultimoMs: 0 });
-    expect(agregar(gs, r)).toHaveLength(1);
+  it("sin ningún reporte contable (resumen ausente) no se publica", () => {
+    expect(agregar(vecinos(1, 3, 4, 2), new Map())).toHaveLength(0);
   });
   it("4 vecinos 'leve' se publican con confianza baja y color 1", () => {
     const s = uno(vecinos(1, 1, 4, 1));

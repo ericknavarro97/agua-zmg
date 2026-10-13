@@ -63,10 +63,33 @@ describe("GET /api/colonias/scores: contrato", () => {
 });
 
 describe("mínimo publicable", () => {
-  it("2 reportes (aunque sean críticos) NO publican la colonia", async () => {
+  it("un solo reporte ya publica la colonia, con confianza baja y el color acercado al valor de partida", async () => {
     const c = await crearColonia();
-    await sembrarVecinos(c, 4, 2);
+    await sembrarVecinos(c, 4, 1);
+    const s = (await de(c))!;
+    expect(s).toBeDefined();
+    expect(s.n).toBe(1);
+    expect(s.n_huellas).toBe(1);
+    expect(s.confianza).toBe("baja");
+    // un 4 aislado no pinta el máximo: la contracción lo acerca al valor de partida (2.0 sin otras colonias)
+    expect(s.score).toBeGreaterThan(2);
+    expect(s.score).toBeLessThan(4);
+  });
+
+  it("un reporte enviado en menos de 5 s (peso 0.5) no alcanza por sí solo", async () => {
+    const c = await crearColonia();
+    await sembrar({ colonia: c, gravedad: 4, tiempoMs: 1000 });
     expect(await de(c)).toBeUndefined();
+  });
+
+  it("más reportes acercan el color al promedio de los vecinos", async () => {
+    const c = await crearColonia();
+    await sembrarVecinos(c, 4, 1);
+    const uno = (await de(c))!.score;
+    await sembrarVecinos(c, 4, 7, { dias: 3, prefijo: "mas" });
+    const ocho = (await de(c))!.score;
+    expect(ocho).toBeGreaterThan(uno);
+    expect(ocho).toBeGreaterThan(3.3);
   });
 
   it("3 vecinos distintos SÍ la publican, con confianza baja", async () => {
@@ -78,24 +101,23 @@ describe("mínimo publicable", () => {
     expect(s.n_huellas).toBe(3);
   });
 
-  it("muchas filas de solo 2 huellas NO publican (exige 3 huellas distintas, no 3 filas)", async () => {
+  it("pocas huellas distintas ya publican, pero con confianza baja", async () => {
     const c = await crearColonia();
-    // 2 huellas, 6 reportes en días distintos y desde redes distintas: la evidencia efectiva alcanza,
-    // pero hay solo 2 personas/dispositivos
+    // 2 huellas, 6 reportes en días distintos y desde redes distintas
     for (let d = 0; d < 3; d++) {
       for (const h of ["A", "B"]) await sembrar({ colonia: c, gravedad: 3, edadDias: d + 0.2, huella: h, red: `r${d}${h}` });
     }
-    expect(await de(c)).toBeUndefined();
-    // la tercera huella la publica
-    await sembrar({ colonia: c, gravedad: 3, edadDias: 0.5, huella: "C", red: "rC" });
-    expect(await de(c)).toBeDefined();
+    const s = (await de(c))!;
+    expect(s.n_huellas).toBe(2);
+    expect(s.confianza).not.toBe("alta");
   });
 
-  it("3 huellas pero poca evidencia efectiva (una sola red) NO publican", async () => {
+  it("varios dispositivos detrás de una sola red suman poca evidencia: publican, pero con confianza baja", async () => {
     const c = await crearColonia();
     // 3 dispositivos detrás de la misma red el mismo día: pesan como mucho kDia = 2 y luego se reducen
     for (let i = 0; i < 3; i++) await sembrar({ colonia: c, gravedad: 4, huella: `h${i}`, red: "misma", redSem: "misma-sem" });
-    expect(await de(c)).toBeUndefined();
+    const s = (await de(c))!;
+    expect(s.confianza).toBe("baja");
   });
 
   it("reportes fuera de la ventana (más de 14 días) no cuentan", async () => {

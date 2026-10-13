@@ -4,7 +4,7 @@
     "title": "API pública de Agua ZMG",
     "version": "1.0.0",
     "summary": "Gravedad del agua por colonia en la Zona Metropolitana de Guadalajara, según reportes de vecinos.",
-    "description": "Datos abiertos y agregados por colonia. NO incluye huellas, comentarios ni ningún dato personal.\n\nLos valores reflejan reportes ciudadanos sin verificar (percepción), no mediciones de laboratorio; no es información oficial ni consejo médico. Que una colonia no tenga score no significa que el agua sea buena: significa que aún no hay reportes suficientes.\n\nUna colonia solo recibe score cuando alcanza el mínimo publicable de reportes (ver /metodologia).\n\nLímites de colonias: aproximados, derivados del catálogo de colonias del INE (corte dic-2020); no son oficiales.",
+    "description": "Datos abiertos y agregados por colonia. NO incluye huellas, comentarios ni ningún dato personal.\n\nLos valores reflejan reportes ciudadanos sin verificar (percepción), no mediciones de laboratorio; no es información oficial ni consejo médico. Que una colonia no tenga score no significa que el agua sea buena: significa que aún no hay reportes.\n\nUna colonia recibe score desde su primer reporte; con pocos reportes la confianza es baja (ver /metodologia).\n\nLímites de colonias: aproximados, derivados del catálogo de colonias del INE (corte dic-2020); no son oficiales.",
     "license": {
       "name": "ODbL-1.0 (provisional, pendiente de confirmación del equipo)",
       "url": "https://opendatacommons.org/licenses/odbl/1-0/"

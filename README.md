@@ -138,7 +138,7 @@ Cada reporte trae una gravedad de 1 a 4. El color de una colonia (`nivel`) es su
 3. **Decaimiento:** cada reporte pierde la mitad de su peso cada 7 días.
 4. **Media recortada:** se descarta el 20 % del peso en cada extremo de la escala, para que unos pocos reportes extremos no muevan el color.
 5. **Contracción hacia un prior acotado** (1.5 a 2.5): con poca evidencia el score se acerca a un valor neutro; un atacante no puede mover ese prior.
-6. **Publicable:** evidencia efectiva ≥ 3 **y** al menos 3 huellas distintas. Antes, la colonia sale en gris.
+6. **Publicable:** basta un reporte completo (evidencia efectiva ≥ 1; uno enviado en menos de 5 s pesa la mitad). Con pocos reportes el color sale tenue y con confianza baja. Sin reportes, la colonia sale en gris.
 7. **Confianza (baja, media, alta):** depende de la evidencia efectiva, de en cuántos días distintos y desde cuántas redes distintas llegó, de que ningún día concentre más del 60 % y de que el promedio y la mediana no discrepen. Con confianza baja el color puede cambiar con pocos reportes más.
 
 Los umbrales son valores iniciales razonados, **no medidos**: se recalibrarán con datos reales y una semana en modo sombra ([`docs/research/anti-abuso.md`](docs/research/anti-abuso.md) §6). **Límite conocido:** quien aparente ser muchos vecinos distintos (muchas redes, tiempos humanos, varios días) no se distingue de vecinos reales; por eso existe moderación humana y transparencia del método.

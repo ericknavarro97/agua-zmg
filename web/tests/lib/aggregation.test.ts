@@ -163,39 +163,48 @@ describe("monotonía", () => {
 // --- mínimo de huellas y evidencia -----------------------------------------------------------
 
 describe("mínimo publicable (evidencia efectiva y huellas)", () => {
-  const tres = () => vecinos(1, 3, 3, 3);
+  const uno = () => vecinos(1, 3, 1, 1);
 
-  it("3 reportes de 3 redes y 3 huellas distintas se publican", () => {
-    expect(calc(tres())).toHaveLength(1);
+  it("el mínimo es un reporte completo (desde v2)", () => {
+    expect(PARAMS.minEvidencia).toBe(1);
+    expect(PARAMS.minHuellas).toBe(1);
+    expect(calc(uno())).toHaveLength(1);
   });
-  it("con solo 2 huellas distintas no se publica, aunque haya 3 filas", () => {
-    const gs = tres();
-    expect(calc(gs, new Map([[1, 2]]))).toHaveLength(0);
-    expect(calc(gs, new Map([[1, 3]]))).toHaveLength(1);
+  it("un reporte aislado se publica con confianza baja, sea cual sea su gravedad", () => {
+    for (const grav of [1, 2, 3, 4] as Gravedad[]) {
+      const [s] = calc(vecinos(1, grav, 1, 1));
+      expect(s.confianza).toBe("baja");
+      expect(s.nivel).toBeGreaterThanOrEqual(1);
+      expect(s.nivel).toBeLessThanOrEqual(4);
+    }
   });
-  it("una sola huella con muchas filas nunca alcanza", () => {
-    const gs = vecinos(1, 4, 40, 5);
-    expect(calc(gs, new Map([[1, 1]]))).toHaveLength(0);
-    expect(calc(gs, new Map([[1, PARAMS.minHuellas - 1]]))).toHaveLength(0);
-    expect(calc(gs, new Map([[1, PARAMS.minHuellas]]))).toHaveLength(1);
+  it("un 4 aislado no pinta el máximo: la contracción lo acerca al valor de partida", () => {
+    const [s] = calc(vecinos(1, 4, 1, 1));
+    expect(s.score).toBeLessThan(3);
+    expect(s.nivel).toBeLessThan(4);
   });
-  it("3 reportes de la misma red el mismo día suman poca evidencia efectiva y no se publican", () => {
+  it("más reportes distintos acercan el score al promedio: 1, 3, 6 y 12 críticos suben de forma monótona", () => {
+    const scores = [1, 3, 6, 12].map((n) => calc(vecinos(1, 4, n, n))[0].score);
+    for (let i = 1; i < scores.length; i++) expect(scores[i]).toBeGreaterThan(scores[i - 1]);
+    expect(scores[3]).toBeGreaterThan(3.4);
+  });
+  it("la huella no es un requisito aparte: basta con que el resumen exista y tenga al menos una", () => {
+    expect(calc(uno(), new Map([[1, 1]]))).toHaveLength(1);
+    expect(calc(uno(), new Map([[1, PARAMS.minHuellas]]))).toHaveLength(1);
+  });
+  it("un reporte enviado en menos de 5 s pesa 0.5 y no alcanza por sí solo; dos sí", () => {
+    const rapido = [g(1, 4, 0, { nRapidos: 1 })];
+    expect(calc(rapido, new Map([[1, 1]]))).toHaveLength(0);
+    expect(calc([...rapido, g(1, 4, 0, { nRapidos: 1 })], new Map([[1, 2]]))).toHaveLength(1);
+  });
+  it("3 reportes de la misma red el mismo día pesan poco, pero ya publican con confianza baja", () => {
     const gs = [g(1, 4, 0.2, { red: "misma", n: 3 })];
-    expect(calc(gs, new Map([[1, 3]]))).toHaveLength(0);
-  });
-  it("la evidencia efectiva mínima es PARAMS.minEvidencia: 2.9 no, 3 sí", () => {
-    // 2 reportes completos + uno de peso 0.9 (rápido: 0.5, y edad cero) => ajustamos con nRapidos
-    const casi = [g(1, 2, 0), g(1, 2, 0), g(1, 2, 0, { nRapidos: 1 })]; // 2 + 0.5 = 2.5 < 3
-    expect(calc(casi, new Map([[1, 3]]))).toHaveLength(0);
-    expect(calc([...casi, g(1, 2, 0)], new Map([[1, 4]]))).toHaveLength(1); // 3.5
+    const [s] = calc(gs, new Map([[1, 3]]));
+    expect(s.nEff).toBeLessThan(3);
+    expect(s.confianza).toBe("baja");
   });
   it("un resumen ausente para la colonia impide publicarla", () => {
-    expect(agregar(tres(), new Map())).toEqual([]);
-  });
-  it("el mínimo de huellas no depende de la gravedad ni de la antigüedad", () => {
-    for (const grav of [1, 2, 3, 4] as Gravedad[]) {
-      expect(calc(vecinos(1, grav, 10, 4), new Map([[1, 2]]))).toHaveLength(0);
-    }
+    expect(agregar(uno(), new Map())).toEqual([]);
   });
 });
 

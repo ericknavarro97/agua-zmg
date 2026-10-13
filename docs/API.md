@@ -41,7 +41,7 @@ La licencia viaja con los datos: cabecera `Link: <…>; rel="license"`, cabecera
 | `ultimo` | Momento del reporte más reciente contado. |
 | `fuente_geom` | Procedencia del polígono (p. ej. `ine_colonias`). |
 
-El cálculo (decaimiento por antigüedad, tope de influencia por red, media recortada, mínimo de evidencia y de huellas) vive en [`web/lib/aggregation.ts`](../web/lib/aggregation.ts) y es el **mismo** que usa el mapa. Los parámetros están versionados (`METODO = "v1"`).
+El cálculo (decaimiento por antigüedad, tope de influencia por red, media recortada, mínimo de evidencia y de huellas) vive en [`web/lib/aggregation.ts`](../web/lib/aggregation.ts) y es el **mismo** que usa el mapa. Los parámetros están versionados (`METODO = "v2"`).
 
 ## `GET /api/v1`
 
