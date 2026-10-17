@@ -143,11 +143,11 @@ export default function Datos() {
           </tr>
         </thead>
         <tbody>
-          <tr><td><code>score</code></td><td>Gravedad promedio ponderada de 1 (leve) a 4 (crítica). Vacío si aún no hay suficientes reportes.</td></tr>
-          <tr><td><code>nivel</code></td><td>El <code>score</code> redondeado a un entero de 1 a 4 (el color del mapa).</td></tr>
+          <tr><td><code>score</code></td><td>Gravedad promedio ponderada de 0 (limpia) a 4 (crítica). Vacío si aún no hay suficientes reportes.</td></tr>
+          <tr><td><code>nivel</code></td><td>El <code>score</code> redondeado a un entero de 0 (limpia) a 4 (crítica), el color del mapa.</td></tr>
           <tr><td><code>confianza</code></td><td><code>baja</code>, <code>media</code> o <code>alta</code>: qué tan respaldado está el nivel. Ver <Link href="/metodologia#confianza">metodología</Link>.</td></tr>
           <tr><td><code>n</code></td><td>Reportes contados en la ventana vigente (14 días).</td></tr>
-          <tr><td><code>n_huellas</code></td><td>Cuántos dispositivos distintos aportaron (solo un conteo).</td></tr>
+          <tr><td><code>n_huellas</code></td><td>Huellas diarias distintas (solo un conteo). La huella rota cada día: una misma persona que reporta varios días cuenta una vez por día, así que no equivale a personas ni a dispositivos.</td></tr>
           <tr><td><code>ultimo</code></td><td>Momento del reporte más reciente contado.</td></tr>
           <tr><td><code>fuente_geom</code></td><td>Procedencia del polígono de la colonia.</td></tr>
         </tbody>

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { PARAMS, agregar, confianzaDe, priorGlobal, recortada, type Grupo, type ResumenColonia } from "./aggregation";
+import { PARAMS, agregar, confianzaDe, recortada, type Grupo, type Nivel, type ResumenColonia } from "./aggregation";
 
 // Constructor de grupos: cada reporte honesto viene de una red distinta (n = 1 por grupo).
 let seq = 0;
 function rep(
   coloniaId: number,
-  gravedad: 1 | 2 | 3 | 4,
+  gravedad: Nivel,
   edadDias: number,
   o: { red?: string; redSem?: string; n?: number; nRapidos?: number } = {},
 ): Grupo {
@@ -26,17 +26,17 @@ const resumen = (gs: Grupo[]): Map<number, ResumenColonia> => {
 const uno = (gs: Grupo[]) => agregar(gs, resumen(gs))[0];
 
 /** `k` vecinos honestos repartidos en `dias` días. */
-const vecinos = (col: number, gravedad: 1 | 2 | 3 | 4, k: number, dias: number) =>
+const vecinos = (col: number, gravedad: Nivel, k: number, dias: number) =>
   Array.from({ length: k }, (_, i) => rep(col, gravedad, (i % dias) + 0.2));
 
 describe("recortada", () => {
   it("ignora los extremos (20 % del peso por cola)", () => {
     // 8 reportes en 2 y 1 en 1 y 1 en 4: la media simple sería 2.1; recortada = 2
-    const r = recortada([1, 8, 0, 1])!;
+    const r = recortada([0, 1, 8, 0, 1])!;
     expect(r.media).toBeCloseTo(2, 5);
     expect(r.mediana).toBe(2);
   });
-  it("sin peso devuelve null", () => expect(recortada([0, 0, 0, 0])).toBeNull());
+  it("sin peso devuelve null", () => expect(recortada([0, 0, 0, 0, 0])).toBeNull());
 });
 
 describe("agregar: publicación mínima", () => {
@@ -68,8 +68,8 @@ describe("agregar: confianza", () => {
     expect(uno(vecinos(1, 3, 8, 2)).confianza).toBe("media");
   });
   it("reportes fuera de la ventana no llegan al agregador (la consulta los excluye)", () => {
-    // confianzaDe es pura sobre estadísticas; con nEff<6 es baja
-    expect(confianzaDe({ nEff: 5, diasCorrob: 3, redesSem: 9, maxDia: 0.3, recortada: 3, mediana: 3 })).toBe("baja");
+    // confianzaDe es pura sobre estadísticas; con nEff < mediaNEff es baja
+    expect(confianzaDe({ nEff: PARAMS.confianza.mediaNEff - 0.1, diasCorrob: 3, redesSem: 9, maxDia: 0.3, recortada: 3, mediana: 3 })).toBe("baja");
   });
 });
 
@@ -113,10 +113,19 @@ describe("agregar: resistencia a brigadeo", () => {
   });
 });
 
-describe("prior", () => {
-  it("el prior queda acotado aunque todas las colonias sean graves", () => {
-    const ps = Array.from({ length: 5 }, (_, i) => ({ coloniaId: i, recortada: 4, mediana: 4, nEff: 20, diasCorrob: 4, redesSem: 20, maxDia: 0.2 }));
-    expect(priorGlobal(ps)).toBe(PARAMS.priorMax);
+describe("sin prior (v3)", () => {
+  it("un solo reporte «leve» se pinta leve, no «moderada»", () => {
+    const s = uno(vecinos(1, 1, 1, 1));
+    expect(s.score).toBe(1);
+    expect(s.nivel).toBe(1);
+  });
+  it("un solo reporte «limpia» se pinta limpia (nivel 0)", () => {
+    expect(uno(vecinos(1, 0, 1, 1)).nivel).toBe(0);
+  });
+  it("el score de una colonia no depende de las demás colonias", () => {
+    const sola = uno(vecinos(1, 2, 3, 3));
+    const acompanada = agregar([...vecinos(1, 2, 3, 3), ...vecinos(2, 4, 30, 4)], resumen([...vecinos(1, 2, 3, 3), ...vecinos(2, 4, 30, 4)]))[0];
+    expect(acompanada.score).toBeCloseTo(sola.score, 9);
   });
 });
 

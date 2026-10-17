@@ -1,7 +1,9 @@
 /**
- * Agregación robusta de reportes ciudadanos -> score por colonia (método "v2").
+ * Agregación robusta de reportes ciudadanos -> score por colonia (método "v3").
  * Ver docs/research/anti-abuso.md §6. El cálculo es una función pura (`agregar`) que se prueba sin base;
  * el SQL solo prepara grupos compactos (colonia, día, red, gravedad) para no traer cada reporte.
+ * Escala: 0 (limpia) a 4 (crítica). Se promedia como escala ordinal: una colonia con vecinos que dicen
+ * «limpia» y otros que dicen «grave» queda en medio, y la discrepancia baja la confianza (paso 6).
  *
  * Qué cuenta: SOLO reportes con estado='visible' y sospechoso=false, de los últimos VENTANA_DIAS.
  *
@@ -12,14 +14,14 @@
  *     - f_concentrada: una red con >= 6 reportes en un día en la misma colonia pesa x0.25.
  *     - f_rapido: formulario enviado en < 5 s pesa x0.5 (el cliente declara el tiempo: señal débil).
  *  2. Decaimiento: w = x * 2^(-edad_dias / vida_media).
- *  3. Media recortada por MASA de peso: se descarta el 20 % del peso en cada extremo de la escala 1-4.
- *  4. Contracción bayesiana hacia un prior: lambda = n_eff / (n_eff + C); score = lambda*recortada + (1-lambda)*prior.
- *     El prior es la media recortada global de colonias reales con n_eff >= 6, acotada a [1.5, 2.5]
- *     (un atacante no puede moverla fuera de ese rango).
- *  5. Publicable: n_eff >= 1 (un reporte completo; uno enviado en < 5 s pesa 0.5 y por sí solo no alcanza).
- *     Desde v2 basta UN reporte: la contracción del paso 4 evita que decida solo el color, y la confianza
- *     "baja" (n_eff < 6) lo pinta tenue y con trama.
- *  6. Confianza: baja / media / alta con los umbrales de PARAMS.confianza.
+ *  3. Media recortada por MASA de peso: se descarta el 20 % del peso en cada extremo de la escala 0-4.
+ *     El score ES esta media: desde v3 no se contrae hacia un prior (en v2 un solo reporte «leve» se pintaba
+ *     «moderada» porque el prior pesaba más que el vecino). Con pocos datos lo que cambia es la confianza.
+ *  4. Evidencia: n_eff = suma de w (YA decaída). Un reporte de hace 7 días aporta 0.5: la evidencia vieja
+ *     baja la confianza sola, aunque todos los reportes tengan la misma edad (en v2 n_eff no decaía).
+ *  5. Publicable: x sin decaer >= 1 (un reporte completo; uno enviado en < 5 s pesa 0.5 y por sí solo no
+ *     alcanza). Así un reporte publica toda la ventana, pero con confianza baja.
+ *  6. Confianza: baja / media / alta con los umbrales de PARAMS.confianza (sobre n_eff decaído).
  *
  * LÍMITE CONOCIDO: quien aparente ser muchos vecinos distintos (muchas redes, tiempos humanos, varios
  * días) no se distingue de vecinos reales. Ver scripts/simular-ataques.ts, que lo mide.
@@ -27,19 +29,13 @@
 import type { Pool } from "pg";
 import { VENTANA_DIAS, VIDA_MEDIA_DIAS } from "./severity";
 
-export const METODO = "v2";
+export const METODO = "v3";
 
 export const PARAMS = {
   ventanaDias: VENTANA_DIAS,
   vidaMediaDias: VIDA_MEDIA_DIAS,
   /** Fracción del PESO que se recorta en cada extremo. 0.2 tolera ~1 de cada 5 reportes falsos extremos. */
   alfa: 0.2,
-  /** Pseudo-reportes del prior (con n_eff = 3 el prior pesa 40 %; con 12, 14 %). Valor inicial, recalibrar. */
-  C: 2,
-  /** Prior acotado: quien reporta es una muestra autoseleccionada con problema, por eso no se centra en 2.5. */
-  priorMin: 1.5,
-  priorMax: 2.5,
-  priorDef: 2.0,
   /** Tope de peso por (colonia, red, día) y por (colonia, red semanal). */
   kDia: 2,
   kSem: 3,
@@ -48,13 +44,16 @@ export const PARAMS = {
   fConcentrada: 0.25,
   rapidoMs: 5000,
   fRapido: 0.5,
-  /** Para publicar una colonia en el mapa (v2: desde un reporte; antes 3 y 3). */
+  /** Para publicar una colonia en el mapa: evidencia SIN decaer (desde v2, un reporte; en v1, 3 y 3). */
   minEvidencia: 1,
   minHuellas: 1,
   confianza: {
-    /** n_eff por debajo de esto: confianza baja (el color puede variar un nivel entero con tan pocos datos). */
-    mediaNEff: 6,
-    altaNEff: 12,
+    /**
+     * n_eff (decaído) por debajo de esto: confianza baja (el color puede variar un nivel entero con tan pocos datos).
+     * En v2 eran 6 y 12 sin decaer; reportes de 0 a 3 días pesan ~0.86 en promedio, de ahí 5 y 10.
+     */
+    mediaNEff: 5,
+    altaNEff: 10,
     /** Un día "corrobora" si aporta al menos esta evidencia; exigir varios días obliga a sostener el esfuerzo. */
     diaCorrob: 1.5,
     mediaDias: 2,
@@ -70,6 +69,8 @@ export const PARAMS = {
 } as const;
 
 export type Confianza = "baja" | "media" | "alta";
+/** 0 limpia, 1 leve, 2 moderada, 3 grave, 4 crítica (ver lib/severity.ts). */
+export type Nivel = 0 | 1 | 2 | 3 | 4;
 
 /** Reportes agrupados por (colonia, día local, red, red semanal, gravedad). */
 export type Grupo = {
@@ -77,7 +78,7 @@ export type Grupo = {
   dia: string;
   red: string;
   redSem: string;
-  gravedad: 1 | 2 | 3 | 4;
+  gravedad: Nivel;
   n: number;
   nRapidos: number;
   /** Edad media del grupo en días. */
@@ -89,13 +90,14 @@ export type ResumenColonia = { n: number; nHuellas: number; ultimoMs: number };
 export type ScoreDetallado = {
   id: number;
   score: number;
-  nivel: 1 | 2 | 3 | 4;
+  nivel: Nivel;
   n: number;
   nHuellas: number;
   confianza: Confianza;
   ultimo: string;
   // diagnóstico (no se publica en /api/colonias/scores)
   nEff: number;
+  nBruta: number;
   recortada: number;
   mediana: number;
   diasCorrob: number;
@@ -108,6 +110,7 @@ type Parcial = {
   recortada: number;
   mediana: number;
   nEff: number;
+  nBruta: number;
   diasCorrob: number;
   redesSem: number;
   maxDia: number;
@@ -119,7 +122,7 @@ const suma = (xs: Iterable<number>) => {
   return s;
 };
 
-/** Media recortada por masa de peso y mediana ponderada sobre la escala ordinal 1-4. */
+/** Media recortada por masa de peso y mediana ponderada sobre la escala ordinal 0-4 (bins[g] = peso del nivel g). */
 export function recortada(bins: readonly number[], alfa = PARAMS.alfa): { media: number; mediana: number } | null {
   const W = suma(bins);
   if (!(W > 0)) return null;
@@ -130,13 +133,13 @@ export function recortada(bins: readonly number[], alfa = PARAMS.alfa): { media:
   let sum = 0;
   let mediana = 4;
   let hayMediana = false;
-  for (let g = 1; g <= 4; g++) {
+  for (let g = 0; g <= 4; g++) {
     const a = cum;
-    const b = cum + bins[g - 1];
+    const b = cum + bins[g];
     const m = Math.max(0, Math.min(b, hi) - Math.max(a, lo));
     kept += m;
     sum += g * m;
-    if (!hayMediana && b >= W / 2 && bins[g - 1] > 0) {
+    if (!hayMediana && b >= W / 2 && bins[g] > 0) {
       mediana = g;
       hayMediana = true;
     }
@@ -145,29 +148,40 @@ export function recortada(bins: readonly number[], alfa = PARAMS.alfa): { media:
   return { media: sum / kept, mediana };
 }
 
-function parcial(coloniaId: number, gs: Grupo[], p = PARAMS): Parcial | null {
+/** Peso de cada grupo de una colonia ANTES de decaer (paso 1): topes por red, red concentrada y envíos rápidos. */
+function pesos(gs: Grupo[], p = PARAMS): number[] {
   const nDia = new Map<string, number>();
   const nSem = new Map<string, number>();
   for (const g of gs) {
     nDia.set(g.red + "|" + g.dia, (nDia.get(g.red + "|" + g.dia) ?? 0) + g.n);
     nSem.set(g.redSem, (nSem.get(g.redSem) ?? 0) + g.n);
   }
-  const bins = [0, 0, 0, 0];
-  const porDia = new Map<string, number>();
-  const redes = new Set<string>();
-  let nEff = 0;
-  for (const g of gs) {
+  return gs.map((g) => {
     const kd = nDia.get(g.red + "|" + g.dia)!;
     const ks = nSem.get(g.redSem)!;
     const tope = Math.min(1, p.kDia / kd, p.kSem / ks);
     const conc = kd >= p.concentrada ? p.fConcentrada : 1;
     // los reportes rápidos pesan menos: n lentos * 1 + n rápidos * fRapido
     const unidades = g.n - g.nRapidos * (1 - p.fRapido);
-    const x = unidades * tope * conc;
-    bins[g.gravedad - 1] += x * Math.pow(2, -g.edadDias / p.vidaMediaDias);
+    return unidades * tope * conc;
+  });
+}
+
+function parcial(coloniaId: number, gs: Grupo[], p = PARAMS): Parcial | null {
+  const xs = pesos(gs, p);
+  const bins = [0, 0, 0, 0, 0];
+  const porDia = new Map<string, number>();
+  const redes = new Set<string>();
+  let nEff = 0;
+  let nBruta = 0;
+  for (const [i, g] of gs.entries()) {
+    const x = xs[i];
+    const w = x * Math.pow(2, -g.edadDias / p.vidaMediaDias);
+    bins[g.gravedad] += w;
     porDia.set(g.dia, (porDia.get(g.dia) ?? 0) + x);
     redes.add(g.redSem);
-    nEff += x;
+    nEff += w;
+    nBruta += x;
   }
   const r = recortada(bins, p.alfa);
   if (!r) return null;
@@ -177,18 +191,17 @@ function parcial(coloniaId: number, gs: Grupo[], p = PARAMS): Parcial | null {
     recortada: r.media,
     mediana: r.mediana,
     nEff,
+    nBruta,
     diasCorrob: dias.filter((v) => v >= p.confianza.diaCorrob).length,
     redesSem: redes.size,
-    maxDia: nEff > 0 ? Math.max(...dias) / nEff : 0,
+    // reparto por día SIN decaer: mide si la evidencia llegó toda junta, no qué tan vieja es
+    maxDia: nBruta > 0 ? Math.max(...dias) / nBruta : 0,
   };
 }
 
-/** Prior global acotado a [priorMin, priorMax] a partir de colonias con evidencia suficiente. */
-export function priorGlobal(ps: Parcial[], p = PARAMS): number {
-  const base = ps.filter((x) => x.nEff >= 6);
-  const den = suma(base.map((x) => x.nEff));
-  const m = den > 0 ? suma(base.map((x) => x.recortada * x.nEff)) / den : p.priorDef;
-  return Math.min(p.priorMax, Math.max(p.priorMin, m));
+/** Score (0-4) a nivel entero 0-4. */
+export function nivelDe(score: number): Nivel {
+  return Math.min(4, Math.max(0, Math.round(score))) as Nivel;
 }
 
 export function confianzaDe(x: Pick<Parcial, "nEff" | "diasCorrob" | "redesSem" | "maxDia" | "recortada" | "mediana">, p = PARAMS): Confianza {
@@ -218,25 +231,22 @@ export function agregar(
     const x = parcial(id, gs, p);
     if (x) parciales.push(x);
   }
-  const m0 = priorGlobal(parciales, p);
-
   const out: ScoreDetallado[] = [];
   for (const x of parciales) {
     const r = resumen.get(x.coloniaId);
     if (!r) continue;
-    // Publicable: evidencia efectiva Y huellas distintas (no solo filas)
-    if (x.nEff < p.minEvidencia || r.nHuellas < p.minHuellas) continue;
-    const lambda = x.nEff / (x.nEff + p.C);
-    const score = lambda * x.recortada + (1 - lambda) * m0;
+    // Publicable: evidencia sin decaer Y huellas distintas (no solo filas)
+    if (x.nBruta < p.minEvidencia || r.nHuellas < p.minHuellas) continue;
     out.push({
       id: x.coloniaId,
-      score,
-      nivel: Math.min(4, Math.max(1, Math.round(score))) as 1 | 2 | 3 | 4,
+      score: x.recortada,
+      nivel: nivelDe(x.recortada),
       n: r.n,
       nHuellas: r.nHuellas,
       confianza: confianzaDe(x, p),
       ultimo: new Date(r.ultimoMs).toISOString(),
       nEff: x.nEff,
+      nBruta: x.nBruta,
       recortada: x.recortada,
       mediana: x.mediana,
       diasCorrob: x.diasCorrob,
@@ -245,6 +255,30 @@ export function agregar(
     });
   }
   return out.sort((a, b) => a.id - b.id);
+}
+
+export type PuntoSerie = { dia: string; n: number; score: number };
+
+/**
+ * Serie diaria de UNA colonia con el mismo peso por reporte que el score (topes por red, envíos rápidos) y la
+ * misma media recortada, sin decaimiento: así la gráfica no muestra un pico que el score ya neutralizó.
+ * `n` es el conteo crudo de reportes del día.
+ */
+export function serieDiaria(gs: Grupo[], p = PARAMS): PuntoSerie[] {
+  const xs = pesos(gs, p);
+  const porDia = new Map<string, { n: number; bins: number[] }>();
+  for (const [i, g] of gs.entries()) {
+    const d = porDia.get(g.dia) ?? { n: 0, bins: [0, 0, 0, 0, 0] };
+    d.n += g.n;
+    d.bins[g.gravedad] += xs[i];
+    porDia.set(g.dia, d);
+  }
+  const out: PuntoSerie[] = [];
+  for (const [dia, d] of porDia) {
+    const r = recortada(d.bins, p.alfa);
+    if (r) out.push({ dia, n: d.n, score: Math.round(r.media * 100) / 100 });
+  }
+  return out.sort((a, b) => a.dia.localeCompare(b.dia));
 }
 
 /** Forma pública del contrato de GET /api/colonias/scores. */
@@ -266,7 +300,12 @@ export function paraContrato(s: ScoreDetallado) {
  * Lee los reportes contables de la ventana, ya agrupados. Las filas sin red (anteriores a la migración 002) cuentan cada una como su propia red: no se penalizan por no tener red.
  * El día se calcula en hora de Guadalajara a partir de creado_en.
  */
-export async function cargarGrupos(pool: Pool, ahora = new Date(), p = PARAMS): Promise<Grupo[]> {
+export async function cargarGrupos(
+  pool: Pool,
+  ahora = new Date(),
+  p = PARAMS,
+  o: { coloniaId?: number; ventanaDias?: number } = {},
+): Promise<Grupo[]> {
   const { rows } = await pool.query(
     `SELECT r.colonia_id,
             to_char((r.creado_en AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS dia,
@@ -280,8 +319,9 @@ export async function cargarGrupos(pool: Pool, ahora = new Date(), p = PARAMS): 
       WHERE r.estado = 'visible' AND NOT r.sospechoso
         AND r.creado_en > $1::timestamptz - make_interval(days => $2::int)
         AND r.creado_en <= $1::timestamptz
+        AND ($4::int IS NULL OR r.colonia_id = $4::int)
       GROUP BY 1, 2, 3, 4, 5`,
-    [ahora.toISOString(), p.ventanaDias, p.rapidoMs],
+    [ahora.toISOString(), o.ventanaDias ?? p.ventanaDias, p.rapidoMs, o.coloniaId ?? null],
   );
   const ahoraS = ahora.getTime() / 1000;
   return rows.map((r) => ({
@@ -324,6 +364,11 @@ export async function cargarResumen(pool: Pool, ahora = new Date(), p = PARAMS):
       { n: r.n, nHuellas: r.n_huellas + (extra.get(r.colonia_id) ?? 0), ultimoMs: r.ultimo_ms },
     ]),
   );
+}
+
+/** Serie de los últimos `dias` días de una colonia (ver `serieDiaria`). */
+export async function cargarSerie(pool: Pool, coloniaId: number, dias = 30, ahora = new Date()): Promise<PuntoSerie[]> {
+  return serieDiaria(await cargarGrupos(pool, ahora, PARAMS, { coloniaId, ventanaDias: dias }));
 }
 
 export async function calcularScores(pool: Pool, ahora = new Date()): Promise<ScoreDetallado[]> {

@@ -34,7 +34,7 @@ export default function Sparkline({ serie }: { serie: PuntoSerie[] }) {
   const maxN = Math.max(1, ...dias.map((d) => d.n));
 
   const x = (i: number) => PAD.l + (i / (DIAS - 1)) * (W - PAD.l - PAD.r);
-  const y = (s: number) => PAD.t + ((4 - s) / 3) * (H - PAD.t - PAD.b);
+  const y = (s: number) => PAD.t + ((4 - s) / 4) * (H - PAD.t - PAD.b);
   const baseY = H - PAD.b;
 
   // Línea por tramos continuos (los días sin reportes cortan la línea)
@@ -68,11 +68,11 @@ export default function Sparkline({ serie }: { serie: PuntoSerie[] }) {
         <title id="spark-t">Reportes de los últimos 30 días</title>
         <desc id="spark-d">{resumen}</desc>
         {/* Líneas guía de cada nivel */}
-        {[1, 2, 3, 4].map((n) => (
+        {GRAVEDADES.map(({ nivel: n, etiqueta }) => (
           <g key={n}>
             <line x1={PAD.l} x2={W - PAD.r} y1={y(n)} y2={y(n)} stroke="#d9e0e5" strokeWidth={1} />
             <text x={PAD.l - 5} y={y(n) + 3} textAnchor="end" fontSize={9} fill="#52646f">
-              {GRAVEDADES[n - 1].etiqueta}
+              {etiqueta}
             </text>
           </g>
         ))}
@@ -100,7 +100,7 @@ export default function Sparkline({ serie }: { serie: PuntoSerie[] }) {
               cx={x(i)}
               cy={y(d.score)}
               r={3.2}
-              fill={GRAVEDADES[(nivelDeScore(d.score) ?? 1) - 1].color}
+              fill={GRAVEDADES[nivelDeScore(d.score) ?? 0].color}
               stroke="#0b2233"
               strokeWidth={1}
             />

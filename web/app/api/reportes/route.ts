@@ -27,7 +27,7 @@ const TIEMPO_MIN_MS = 2000;
 const Body = z.object({
   // tope = máximo de integer en Postgres (más allá, la consulta falla con 500)
   colonia_id: z.number().int().positive().max(2147483647),
-  gravedad: z.number().int().min(1).max(4),
+  gravedad: z.number().int().min(0).max(4),
   sintomas: z.array(z.enum(SINTOMAS)).max(SINTOMAS.length).default([]),
   comentario: z.string().trim().max(500).optional(),
   // honeypot: campo oculto que un humano nunca llena (DEBE venir vacío)

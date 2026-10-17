@@ -52,7 +52,7 @@ export default function Privacidad() {
 
       <h2 id="que-guardamos">Qué guardamos cuando envías un reporte</h2>
       <ul>
-        <li>La colonia, la gravedad que elegiste (1 a 4) y la fecha y hora.</li>
+        <li>La colonia, la gravedad que elegiste (0 a 4) y la fecha y hora.</li>
         <li>
           Los <strong>síntomas</strong> que marcaste (por ejemplo, «diarrea o malestar estomacal»). Son información de salud, un
           dato sensible. Solo se guardan si los marcas y no están ligados a tu nombre, porque no te lo pedimos.

@@ -86,7 +86,7 @@ export default function FormularioReporte({
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
-    if (!gravedad || estado === "enviando") return;
+    if (gravedad === null || estado === "enviando") return;
     setEstado("enviando");
     setMensaje("");
     let status: number | null = null;
@@ -244,10 +244,10 @@ export default function FormularioReporte({
 
       <button
         type="submit"
-        disabled={!gravedad || estado === "enviando"}
+        disabled={gravedad === null || estado === "enviando"}
         className="min-h-12 w-full rounded-[15px] bg-tinta px-4 py-3 text-base font-bold text-white hover:bg-[#13334a] disabled:bg-[#9fb3c2] disabled:text-tinta"
       >
-        {estado === "enviando" ? "Enviando…" : gravedad ? "Enviar mi reporte" : "Elige cómo llega el agua para enviar"}
+        {estado === "enviando" ? "Enviando…" : gravedad !== null ? "Enviar mi reporte" : "Elige cómo llega el agua para enviar"}
       </button>
       <p className="text-xs leading-relaxed text-texto-tenue">
         Sin cuenta ni nombre. No guardamos tu IP ni tu ubicación. Para evitar reportes repetidos guardamos una huella diaria

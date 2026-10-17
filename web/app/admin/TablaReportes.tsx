@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { GRAVEDADES } from "@/lib/severity";
 
 export type FilaReporte = {
   id: number;
@@ -24,7 +25,7 @@ const fecha = (s: string) =>
   new Date(s).toLocaleString("es-MX", { timeZone: "America/Mexico_City", dateStyle: "short", timeStyle: "short" });
 const boton = "rounded border border-slate-400 px-2 py-1 hover:bg-slate-100 disabled:opacity-50";
 const ESTADOS: Record<string, string> = { visible: "Visible", revision: "En revisión", oculto: "Oculto" };
-const NIVELES = ["", "Leve", "Moderada", "Grave", "Crítica"];
+const NIVELES = GRAVEDADES.map((g) => g.etiqueta);
 
 /** Todos los reportes en una tabla (más recientes primero), con filtros y acciones sobre las filas marcadas. */
 export default function TablaReportes({ reportes, total }: { reportes: FilaReporte[]; total: number }) {

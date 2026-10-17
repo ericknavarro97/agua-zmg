@@ -35,10 +35,10 @@ describe("GET /api/colonias/scores: contrato", () => {
     const [s] = await lista();
     expect(Object.keys(s).sort()).toEqual(["confianza", "id", "n", "n_huellas", "nivel", "score", "ultimo"]);
     expect(typeof s.score).toBe("number");
-    expect(s.score).toBeGreaterThanOrEqual(1);
+    expect(s.score).toBeGreaterThanOrEqual(0);
     expect(s.score).toBeLessThanOrEqual(4);
     expect(Number.isInteger(s.nivel)).toBe(true);
-    expect([1, 2, 3, 4]).toContain(s.nivel);
+    expect([0, 1, 2, 3, 4]).toContain(s.nivel);
     expect(Number.isInteger(s.n)).toBe(true);
     expect(Number.isInteger(s.n_huellas)).toBe(true);
     expect(["baja", "media", "alta"]).toContain(s.confianza);
@@ -63,7 +63,7 @@ describe("GET /api/colonias/scores: contrato", () => {
 });
 
 describe("mínimo publicable", () => {
-  it("un solo reporte ya publica la colonia, con confianza baja y el color acercado al valor de partida", async () => {
+  it("un solo reporte ya publica la colonia, con confianza baja y el nivel que reportó", async () => {
     const c = await crearColonia();
     await sembrarVecinos(c, 4, 1);
     const s = (await de(c))!;
@@ -71,9 +71,9 @@ describe("mínimo publicable", () => {
     expect(s.n).toBe(1);
     expect(s.n_huellas).toBe(1);
     expect(s.confianza).toBe("baja");
-    // un 4 aislado no pinta el máximo: la contracción lo acerca al valor de partida (2.0 sin otras colonias)
-    expect(s.score).toBeGreaterThan(2);
-    expect(s.score).toBeLessThan(4);
+    // desde v3 no hay contracción hacia un prior: el color es lo que dijo el vecino; la confianza baja lo matiza
+    expect(s.score).toBe(4);
+    expect(s.nivel).toBe(4);
   });
 
   it("un reporte enviado en menos de 5 s (peso 0.5) no alcanza por sí solo", async () => {
@@ -82,14 +82,29 @@ describe("mínimo publicable", () => {
     expect(await de(c)).toBeUndefined();
   });
 
-  it("más reportes acercan el color al promedio de los vecinos", async () => {
+  it("un solo reporte «leve» se pinta leve (en v2 la contracción lo pintaba «moderada»)", async () => {
+    const c = await crearColonia();
+    await sembrarVecinos(c, 1, 1);
+    expect((await de(c))!.nivel).toBe(1);
+  });
+
+  it("se puede reportar agua limpia: nivel 0", async () => {
+    const c = await crearColonia();
+    await sembrarVecinos(c, 0, 3, { dias: 3 });
+    const s = (await de(c))!;
+    expect(s.nivel).toBe(0);
+    expect(s.score).toBe(0);
+  });
+
+  it("más reportes coincidentes no mueven el color, pero sí la confianza", async () => {
     const c = await crearColonia();
     await sembrarVecinos(c, 4, 1);
-    const uno = (await de(c))!.score;
-    await sembrarVecinos(c, 4, 7, { dias: 3, prefijo: "mas" });
-    const ocho = (await de(c))!.score;
-    expect(ocho).toBeGreaterThan(uno);
-    expect(ocho).toBeGreaterThan(3.3);
+    const uno = (await de(c))!;
+    await sembrarVecinos(c, 4, 11, { dias: 4, prefijo: "mas" });
+    const doce = (await de(c))!;
+    expect(doce.score).toBeCloseTo(uno.score, 6);
+    expect(uno.confianza).toBe("baja");
+    expect(doce.confianza).not.toBe("baja");
   });
 
   it("3 vecinos distintos SÍ la publican, con confianza baja", async () => {
@@ -358,19 +373,13 @@ describe("robustez frente a brigadeo (pocas huellas / pocas redes)", () => {
   });
 });
 
-describe("prior global", () => {
-  it("el prior global está acotado [1.5, 2.5]: colonias reales extremas no lo sacan de ese rango", async () => {
-    // colonia real con casi cero evidencia, 3 vecinos 'críticos', frente a muchas colonias críticas
-    const chica = await crearColonia();
-    await sembrarVecinos(chica, 4, 3);
-    for (let k = 0; k < 4; k++) {
-      const g = await crearColonia();
-      await sembrarVecinos(g, 4, 20, { dias: 4, prefijo: `grave${k}` });
-    }
-    // lambda = 3/(3+C): score = lambda*4 + (1-lambda)*prior, prior <= 2.5
-    const lambda = 3 / (3 + PARAMS.C);
-    const maximo = lambda * 4 + (1 - lambda) * PARAMS.priorMax;
-    expect((await de(chica))!.score).toBeLessThanOrEqual(maximo + 1e-6);
+describe("decaimiento de la evidencia (v3)", () => {
+  it("reportes de hace casi dos semanas siguen publicando, pero con confianza baja", async () => {
+    const c = await crearColonia();
+    await sembrarVecinos(c, 4, 12, { dias: 3, edadBase: 11 });
+    const s = (await de(c))!;
+    expect(s.nivel).toBe(4);
+    expect(s.confianza).toBe("baja");
   });
 });
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
+import { VENTANA_DIAS } from "@/lib/severity";
 import Compartir from "./Compartir";
 import ComentariosVecinos from "./ComentariosVecinos";
 import DatosOficiales from "./DatosOficiales";
@@ -104,11 +105,10 @@ export default function PanelColonia({
   const nivel = rep ? (rep.nivel ?? nivelDeScore(rep.score)) : score ? score.nivel : null;
   const confianza = rep?.confianza ?? score?.confianza ?? null;
   const n = rep?.n ?? score?.n ?? 0;
-  const huellas = rep?.n_huellas ?? score?.n_huellas ?? 0;
   const ultimo = rep?.ultimo ?? score?.ultimo ?? null;
   const ultimoCorto = haceCuantoCorto(ultimo);
 
-  const resumen = nivel
+  const resumen = nivel != null
     ? confianza
       ? `${CONFIANZA[confianza].etiqueta}: ${CONFIANZA[confianza].corta}`
       : "Es lo que reportan vecinos, no una medición oficial."
@@ -119,12 +119,12 @@ export default function PanelColonia({
     <div className={`items-center gap-3 rounded-[14px] bg-white/[0.06] px-3 py-3 md:px-4 ${clase}`}>
       <Muestra nivel={nivel} enorme />
       <div className="flex-1">
-        <p className="mono-etiqueta !text-[0.6875rem] text-gris-dock">{nivel ? `Nivel ${nivel}/4` : "Sin nivel"}</p>
+        <p className="mono-etiqueta !text-[0.6875rem] text-gris-dock">{nivel != null ? `Nivel ${nivel}/4` : "Sin nivel"}</p>
         <p className="mt-0.5 whitespace-nowrap text-[1.375rem] font-bold leading-tight md:text-2xl">
-          {nivel ? etiquetaNivel(nivel) : "Sin datos"}
+          {nivel != null ? etiquetaNivel(nivel) : "Sin datos"}
         </p>
       </div>
-      {nivel && confianza && (
+      {nivel != null && confianza && (
         <div className="text-right md:hidden">
           <p className="mono-etiqueta !text-[0.6875rem] text-gris-dock">Confianza</p>
           <p className="mt-0.5 text-base font-semibold capitalize">{confianza}</p>
@@ -172,8 +172,8 @@ export default function PanelColonia({
         {modo !== "ficha" && (
           <p className="mt-2 flex items-center gap-2 text-sm font-semibold md:hidden">
             <Muestra nivel={nivel} />
-            {nivel ? `Nivel ${nivel}/4 · ${etiquetaNivel(nivel)}` : "Sin datos suficientes"}
-            {nivel && confianza ? <span className="font-normal text-gris-dock">· confianza {confianza}</span> : null}
+            {nivel != null ? `Nivel ${nivel}/4 · ${etiquetaNivel(nivel)}` : "Sin datos suficientes"}
+            {nivel != null && confianza ? <span className="font-normal text-gris-dock">· confianza {confianza}</span> : null}
           </p>
         )}
       </div>
@@ -184,7 +184,6 @@ export default function PanelColonia({
           {n > 0 ? (
             <>
               <span><span className="text-white">{n}</span> {n === 1 ? "reporte" : "reportes"}</span>
-              <span><span className="text-white">{huellas}</span> {huellas === 1 ? "dispositivo" : "dispositivos"}</span>
               {ultimoCorto && (
                 <span>
                   Último <span className="text-white">{ultimoCorto}</span>
@@ -233,7 +232,7 @@ export default function PanelColonia({
               {/* Estado actual, con la explicación completa */}
               <div className="mt-3 rounded-xl border border-borde bg-white p-3 text-sm" aria-live="polite">
                 <ChipNivel nivel={nivel} />
-                {nivel ? (
+                {nivel != null ? (
                   <>
                     {confianza && (
                       <p className="mt-2">
@@ -242,8 +241,8 @@ export default function PanelColonia({
                       </p>
                     )}
                     <p className="mt-2 text-xs text-texto-tenue">
-                      {n} {n === 1 ? "reporte" : "reportes"} de {huellas}{" "}
-                      {huellas === 1 ? "dispositivo distinto" : "dispositivos distintos"}
+                      {/* Sin «dispositivos distintos»: la huella rota cada día, así que contaría a la misma persona una vez por día */}
+                      {n} {n === 1 ? "reporte" : "reportes"} en los últimos {VENTANA_DIAS} días
                       {ultimo ? `; el último, ${haceCuanto(ultimo)}` : ""}. Los más recientes pesan más.
                     </p>
                   </>
@@ -293,7 +292,7 @@ export default function PanelColonia({
                 id={colonia.id}
                 nombre={colonia.nombre}
                 municipio={colonia.municipio}
-                etiquetaNivel={nivel ? etiquetaNivel(nivel) : null}
+                etiquetaNivel={nivel != null ? etiquetaNivel(nivel) : null}
               />
 
               <p className="mt-5 text-xs text-texto-tenue">

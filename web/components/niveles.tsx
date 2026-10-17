@@ -1,23 +1,26 @@
 import { GRAVEDADES } from "@/lib/severity";
 import type { Confianza, TipoFuente } from "./tipos";
 
-/** Limita el score al nivel entero 1-4 */
+/**
+ * Limita el score al nivel entero 0-4. OJO: el nivel 0 («Limpia») es un nivel válido; «sin datos» es null.
+ * Compara siempre con `!= null`, nunca por verdad (`nivel ? …` trataría «Limpia» como «sin datos»).
+ */
 export function nivelDeScore(score: number | null | undefined): number | null {
   if (score == null || Number.isNaN(score)) return null;
-  return Math.min(4, Math.max(1, Math.round(score)));
+  return Math.min(4, Math.max(0, Math.round(score)));
 }
 
 export function etiquetaNivel(nivel: number | null): string {
-  return nivel ? GRAVEDADES[nivel - 1].etiqueta : "Sin datos suficientes";
+  return nivel != null ? GRAVEDADES[nivel].etiqueta : "Sin datos suficientes";
 }
 
 export function colorNivel(nivel: number | null): string {
-  return nivel ? GRAVEDADES[nivel - 1].color : "#cbd5e1";
+  return nivel != null ? GRAVEDADES[nivel].color : "#cbd5e1";
 }
 
-/** Muestra de nivel: color + trama (no depende solo del color) */
+/** Muestra de nivel: color + trama (no depende solo del color). `sw-sd` = sin datos. */
 export function Muestra({ nivel, grande = false, enorme = false }: { nivel: number | null; grande?: boolean; enorme?: boolean }) {
-  return <span aria-hidden="true" className={`sw sw-${nivel ?? 0} ${enorme ? "sw-xl" : grande ? "sw-lg" : ""}`} />;
+  return <span aria-hidden="true" className={`sw sw-${nivel ?? "sd"} ${enorme ? "sw-xl" : grande ? "sw-lg" : ""}`} />;
 }
 
 /** Nivel con muestra y etiqueta escrita */
@@ -26,7 +29,7 @@ export function ChipNivel({ nivel, extra }: { nivel: number | null; extra?: stri
     <span className="inline-flex items-center gap-2 font-semibold">
       <Muestra nivel={nivel} grande />
       <span>
-        {nivel ? `Nivel ${nivel}: ` : ""}
+        {nivel != null ? `Nivel ${nivel}: ` : ""}
         {etiquetaNivel(nivel)}
       </span>
       {extra && <span className="font-normal text-slate-600">{extra}</span>}

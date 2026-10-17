@@ -3,9 +3,11 @@
  * El desabasto se reporta con el síntoma "Sin agua / baja presión", no con un nivel.
  */
 export const AVISO_NIVELES =
-  "Ningún nivel significa que el agua sea segura para beber o cocinar. La escala describe cómo se ve y huele el agua, no si hay agua.";
+  "Ningún nivel significa que el agua sea segura para beber o cocinar, ni siquiera «Limpia». La escala describe cómo se ve y huele el agua, no si hay agua.";
 
+/** Escala 0-4: el índice del arreglo ES el nivel (GRAVEDADES[n].nivel === n). */
 export const GRAVEDADES = [
+  { nivel: 0, etiqueta: "Limpia", detalle: "Se ve clara y no huele raro", color: "#78b98f" },
   { nivel: 1, etiqueta: "Leve", detalle: "Turbia o con mal olor", color: "#f3d27a" },
   { nivel: 2, etiqueta: "Moderada", detalle: "Con color o sedimentos visibles", color: "#ec9a56" },
   { nivel: 3, etiqueta: "Grave", detalle: "Muy sucia o con olor fuerte", color: "#d4574f" },
@@ -32,6 +34,6 @@ export const VIDA_MEDIA_DIAS = 7;
 
 export function colorParaScore(score: number | null | undefined): string {
   if (score == null || Number.isNaN(score)) return SIN_DATOS_COLOR;
-  const nivel = Math.min(4, Math.max(1, Math.round(score)));
-  return GRAVEDADES[nivel - 1].color;
+  const nivel = Math.min(4, Math.max(0, Math.round(score)));
+  return GRAVEDADES[nivel].color;
 }

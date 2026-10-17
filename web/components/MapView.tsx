@@ -63,7 +63,8 @@ async function cargarEstilo(): Promise<{ estilo: StyleSpecification; respaldo: b
   }
 }
 
-const NIVEL_ESTADO = ["coalesce", ["feature-state", "nivel"], 0] as const;
+// -1 = sin datos (el 0 es un nivel válido: «Limpia»)
+const NIVEL_ESTADO = ["coalesce", ["feature-state", "nivel"], -1] as const;
 // El resaltado al pasar el mouse se aplica en todas las capas de relleno (base, tramas y datos externos)
 const FUENTES_HOVER = ["colonias", "colonias-nivel", "colonias-externos"] as const;
 const COLORES_NIVEL = GRAVEDADES.flatMap((g) => [g.nivel, g.color]);
@@ -111,7 +112,7 @@ export default function MapView(props: Props) {
           const primeraEtiqueta = map.getStyle().layers.find((l) => l.type === "symbol")?.id;
 
           // Tramas por nivel
-          for (const n of [1, 2, 3, 4] as const) {
+          for (const n of [0, 1, 2, 3, 4] as const) {
             const p = crearPatron(n);
             if (p) map.addImage(NOMBRE_PATRON(n), p, { pixelRatio: 2 });
           }
@@ -125,8 +126,8 @@ export default function MapView(props: Props) {
           const HOVER = ["boolean", ["feature-state", "hover"], false];
           const opacidad = (baja: unknown, resto: unknown) => [
             "case",
-            HOVER, ["case", ["==", NIVEL_ESTADO, 0], 0.45, 0.82],
-            ["==", NIVEL_ESTADO, 0], 0.08,
+            HOVER, ["case", ["==", NIVEL_ESTADO, -1], 0.45, 0.82],
+            ["==", NIVEL_ESTADO, -1], 0.08,
             ["==", ["feature-state", "conf"], 1], baja,
             resto,
           ];
@@ -150,7 +151,7 @@ export default function MapView(props: Props) {
               type: "fill",
               source: "colonias-nivel",
               paint: {
-                "fill-pattern": ["match", ["get", "nivel"], 2, "patron-2", 3, "patron-3", 4, "patron-4", "patron-1"] as never,
+                "fill-pattern": ["match", ["get", "nivel"], 0, "patron-0", 2, "patron-2", 3, "patron-3", 4, "patron-4", "patron-1"] as never,
                 "fill-opacity": ["interpolate", ["linear"], ["zoom"], 10.5, 0, 12.5, ["case", HOVER, 0.9, ["match", ["get", "conf"], "baja", 0.3, 0.5]]] as never,
               },
             },
@@ -282,7 +283,7 @@ export default function MapView(props: Props) {
     const conNivel: GeoJSON.Feature[] = [];
     for (const f of geo.features) {
       const s = scores[f.properties.id];
-      const nivel = s ? s.nivel : 0;
+      const nivel = s ? s.nivel : -1;
       const conf = s ? (s.confianza === "baja" ? 1 : s.confianza === "media" ? 2 : 3) : 0;
       m.setFeatureState({ source: "colonias", id: f.properties.id }, { nivel, conf });
       if (s) {

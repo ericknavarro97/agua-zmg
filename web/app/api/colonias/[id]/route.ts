@@ -1,5 +1,5 @@
 import { pool } from "@/lib/db";
-import { PARAMS, scoresConCache } from "@/lib/aggregation";
+import { PARAMS, cargarSerie, scoresConCache } from "@/lib/aggregation";
 import { jsonConEtag } from "@/lib/oficial-http";
 import { type FilaOficial, aContratoOficial } from "@/lib/oficial";
 
@@ -22,7 +22,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const c = col.rows[0] as { id: number; nombre: string; municipio: string | null; fuente_geom: string };
 
   // Los agregados (n, n_huellas, score, nivel) solo se publican si la colonia alcanza el mínimo publicable (igual que
-  // /api/v1). La serie diaria y los comentarios públicos se muestran con cualquier cantidad de reportes.
+  // /api/v1). La serie diaria y los comentarios públicos se muestran con cualquier cantidad de reportes (también en v1).
   const [scores, oficial] = await Promise.all([
     scoresConCache(pool),
     pool.query(
@@ -42,59 +42,37 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   ]);
   const s = scores.find((x) => x.id === id);
 
-  // Mismo criterio que lib/aggregation.ts: solo visibles y no sospechosos, ventana de VENTANA_DIAS.
-  // Los agregados (n, huellas, score) solo existen si la colonia alcanza el mínimo publicable; la gráfica de reportes
-  // por día y los comentarios públicos se muestran con cualquier cantidad de reportes.
-  const [resumen, serie, comentarios] = await Promise.all([
-    s
-      ? pool.query(
-          `SELECT count(*)::int AS n,
-                  (count(DISTINCT huella) + count(*) FILTER (WHERE huella IS NULL))::int AS n_huellas,
-                  max(creado_en) AS ultimo
-             FROM reportes
-            WHERE colonia_id = $1 AND estado = 'visible' AND NOT sospechoso
-              AND creado_en > now() - make_interval(days => $2::int)`,
-          [id, PARAMS.ventanaDias],
-        )
-      : Promise.resolve(null),
-    // Solo días con reportes (el cliente rellena los vacíos). El score diario es la media simple de ese día.
-    pool.query(
-      `SELECT to_char((creado_en AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS dia,
-              count(*)::int AS n, round(avg(gravedad)::numeric, 2)::float8 AS score
-         FROM reportes
-        WHERE colonia_id = $1 AND estado = 'visible' AND NOT sospechoso
-          AND creado_en > now() - interval '30 days'
-        GROUP BY 1 ORDER BY 1`,
-      [id],
-    ),
+  // n, huellas y último salen del MISMO cálculo que el nivel (antes se volvían a consultar aparte y podían no
+  // coincidir con el nivel en caché). La serie usa los mismos topes por red que el score (lib/aggregation.ts).
+  const [serie, comentarios] = await Promise.all([
+    cargarSerie(pool, id, 30),
     // Comentarios que su autor aceptó mostrar (el formulario lo avisa). Solo el día, sin hora ni identificadores.
-    // Un reporte oculto o en revisión también retira su comentario.
+    // Un reporte oculto o en revisión también retira su comentario. Misma ventana que el nivel.
     pool.query(
       `SELECT to_char((creado_en AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS dia,
               gravedad::int AS gravedad, comentario AS texto
          FROM reportes
         WHERE colonia_id = $1 AND estado = 'visible' AND NOT sospechoso
           AND comentario IS NOT NULL AND comentario_publico
-          AND creado_en > now() - interval '30 days'
+          AND creado_en > now() - make_interval(days => $2::int)
         ORDER BY creado_en DESC LIMIT 20`,
-      [id],
+      [id, PARAMS.ventanaDias],
     ),
   ]);
 
-  const r = resumen?.rows[0];
   const cuerpo = {
     id: c.id,
     nombre: c.nombre,
     municipio: c.municipio,
     fuente_geom: c.fuente_geom,
     reportes: {
-      n: s && r ? (r.n as number) : null,
-      n_huellas: s && r ? (r.n_huellas as number) : null,
+      n: s ? s.n : null,
+      n_huellas: s ? s.nHuellas : null,
       score: s ? Number(s.score.toFixed(3)) : null,
       nivel: s ? s.nivel : null,
       confianza: s ? s.confianza : null,
-      ultimo: s && r?.ultimo ? new Date(r.ultimo).toISOString() : null,
-      serie: serie.rows as { dia: string; n: number; score: number }[],
+      ultimo: s ? s.ultimo : null,
+      serie,
     },
     comentarios: comentarios.rows as { dia: string; gravedad: number; texto: string }[],
     oficial: oficial.rows.map((o) => aContratoOficial(o as FilaOficial)),

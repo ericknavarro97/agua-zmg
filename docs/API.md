@@ -33,15 +33,15 @@ La licencia viaja con los datos: cabecera `Link: <…>; rel="license"`, cabecera
 
 | Campo | Significado |
 |---|---|
-| `score` | Gravedad promedio ponderada de 1 (leve) a 4 (crítica). `null` si la colonia aún no alcanza el mínimo publicable. |
-| `nivel` | `score` redondeado a entero 1-4 (el color del mapa). |
+| `score` | Gravedad promedio ponderada de 0 (limpia) a 4 (crítica). Que se vea limpia **no** significa que sea segura para beber. `null` si la colonia aún no alcanza el mínimo publicable. |
+| `nivel` | `score` redondeado a entero 0-4 (el color del mapa): 0 limpia, 1 leve, 2 moderada, 3 grave, 4 crítica. Hasta el método v2 el rango era 1-4; el 0 se agregó en v3 (17-oct-2026). |
 | `confianza` | `baja`, `media` o `alta`: qué tan respaldado está el score (cuánta evidencia efectiva, en cuántos días y desde cuántas redes distintas). Con `baja` el color puede cambiar con pocos reportes más. Se explica en `/metodologia`. |
 | `n` | Reportes contados en la ventana vigente (14 días). `null` si no se alcanza el mínimo (no se publican conteos de 1 o 2 reportes). |
-| `n_huellas` | Cuántos dispositivos distintos aportaron (un conteo; no se entregan identificadores). |
+| `n_huellas` | Huellas diarias distintas (solo un conteo). La huella rota cada día: una misma persona que reporta varios días cuenta una vez por día, así que no equivale a personas ni a dispositivos. No se entregan identificadores. |
 | `ultimo` | Momento del reporte más reciente contado. |
 | `fuente_geom` | Procedencia del polígono (p. ej. `ine_colonias`). |
 
-El cálculo (decaimiento por antigüedad, tope de influencia por red, media recortada, mínimo de evidencia y de huellas) vive en [`web/lib/aggregation.ts`](../web/lib/aggregation.ts) y es el **mismo** que usa el mapa. Los parámetros están versionados (`METODO = "v2"`).
+El cálculo (decaimiento por antigüedad, tope de influencia por red, media recortada, mínimo de evidencia y de huellas) vive en [`web/lib/aggregation.ts`](../web/lib/aggregation.ts) y es el **mismo** que usa el mapa. Los parámetros están versionados (`METODO = "v3"`).
 
 ## `GET /api/v1`
 
@@ -111,7 +111,7 @@ Detalle de una colonia.
 }
 ```
 
-- `reportes.serie`: últimos 30 días, un punto por día con reportes (`n` y `score` promedio simple del día). Va **vacía** si la colonia no alcanza el mínimo publicable.
+- `reportes.serie`: últimos 30 días, un punto por día con reportes: `n` (conteo crudo) y `score` (media recortada del día, 0 a 4, con los mismos topes por red que el score general y sin decaimiento).
 - `oficial`: datos externos (oficiales, académicos, periodísticos o ciudadanos) vinculados a la colonia. **No entran al score.** Cada uno trae `fuente` y `url`; `confianza_vinculo` (`alta`/`media`/`baja`) indica qué tan seguro es que el dato corresponda a *esta* colonia (la vinculación es por nombre). `notas` (texto o `null`) lleva las advertencias de cada dato —histórico fuera de ventana, tira reactiva semicuantitativa que no sustituye al laboratorio, listado administrativo que no es una medición—: **muéstralas junto al valor**; un `valor: null` sin leer `notas` es ambiguo. Muchas filas son listados administrativos (p. ej. colonias incluidas en un programa de descuento), no mediciones: lee `parametro`, `valor` y la fuente antes de interpretarlas. Los vínculos `baja` (coincidencia dudosa de nombre) no se incluyen aquí; `/api/oficial` solo los devuelve con `?min_vinculo=baja`. Origen y límites en [`data/oficial/FUENTES.md`](../data/oficial/FUENTES.md).
 - `id` inexistente: `404`. `id` no numérico: `400`.
 

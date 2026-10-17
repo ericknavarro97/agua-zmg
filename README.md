@@ -12,7 +12,7 @@ Contexto: octubre de 2026, crisis de agua turbia en la ZMG reportada en cientos 
 
 ## Qué hace
 
-- **Mapa** (`/`): colonias coloreadas por gravedad (1 leve, 2 moderada, 3 grave, 4 crítica) con búsqueda, ubicación y detalle de cada colonia. Una colonia solo se pinta cuando hay evidencia suficiente; si no, aparece en gris ("sin datos suficientes"). La confianza (baja, media, alta) se comunica aparte del color.
+- **Mapa** (`/`): colonias coloreadas por gravedad (0 limpia, 1 leve, 2 moderada, 3 grave, 4 crítica) con búsqueda, ubicación y detalle de cada colonia. Una colonia solo se pinta cuando hay evidencia suficiente; si no, aparece en gris ("sin datos suficientes"). La confianza (baja, media, alta) se comunica aparte del color.
 - **Reportar**: formulario anónimo (sin cuentas): colonia, gravedad, síntomas y comentario opcional.
 - **Datos externos** (en la web, «Reportes publicados»): mediciones y listados de fuentes oficiales, académicas, periodísticas y ciudadanas, **separados** del puntaje ciudadano, cada uno con su fuente original y URL (ver [`data/oficial/FUENTES.md`](data/oficial/FUENTES.md)).
 - **Guía** (`/que-hacer`, `/denunciar`): qué hacer y cómo denunciar, solo con afirmaciones que tienen fuente verificada ([`docs/research/guia-contenido.md`](docs/research/guia-contenido.md)).
@@ -71,7 +71,7 @@ docker compose up -d                  # PostGIS en localhost:5433 (usuario/clave
 cd web
 pnpm install
 cp .env.example .env.local            # y revisa los valores (ver "Variables de entorno")
-pnpm migrate                          # aplica db/migrations/*.sql (001 a 006)
+pnpm migrate                          # aplica db/migrations/*.sql (001 a 008)
 pnpm import:colonias ../data/colonias_zmg.geojson --fuente-geom ine_colonias   # colonias reales
 pnpm import:oficial --todos           # datos externos (opcional)
 pnpm dev                              # http://localhost:3000
@@ -131,15 +131,14 @@ La lista completa y comentada está en [`web/.env.example`](web/.env.example). L
 
 ## Cómo se calcula la gravedad
 
-Cada reporte trae una gravedad de 1 a 4. El color de una colonia (`nivel`) es su **score** redondeado, calculado por el método **v1** (`web/lib/aggregation.ts`, parámetros versionados; cambiar uno exige subir la versión):
+Cada reporte trae una gravedad de 0 (limpia) a 4 (crítica). El color de una colonia (`nivel`) es su **score** redondeado, calculado por el método **v3** (`web/lib/aggregation.ts`, parámetros versionados; cambiar uno exige subir la versión):
 
 1. **Qué cuenta:** solo reportes `visible` y no sospechosos de los últimos 14 días. Los reportes con el campo trampa lleno o enviados instantáneamente se guardan marcados y **no cuentan** (el bot recibe la misma respuesta que un usuario normal).
 2. **Peso por reporte:** limitado según cuántos reportes llegan de la misma red en esa colonia el mismo día y la misma semana (nadie puede pesar más por insistir), reducido si la red concentra muchos reportes o si el formulario se envió demasiado rápido.
-3. **Decaimiento:** cada reporte pierde la mitad de su peso cada 7 días.
-4. **Media recortada:** se descarta el 20 % del peso en cada extremo de la escala, para que unos pocos reportes extremos no muevan el color.
-5. **Contracción hacia un prior acotado** (1.5 a 2.5): con poca evidencia el score se acerca a un valor neutro; un atacante no puede mover ese prior.
-6. **Publicable:** basta un reporte completo (evidencia efectiva ≥ 1; uno enviado en menos de 5 s pesa la mitad). Con pocos reportes el color sale tenue y con confianza baja. Sin reportes, la colonia sale en gris.
-7. **Confianza (baja, media, alta):** depende de la evidencia efectiva, de en cuántos días distintos y desde cuántas redes distintas llegó, de que ningún día concentre más del 60 % y de que el promedio y la mediana no discrepen. Con confianza baja el color puede cambiar con pocos reportes más.
+3. **Decaimiento:** cada reporte pierde la mitad de su peso cada 7 días, tanto en el promedio como en la evidencia que alimenta la confianza.
+4. **Media recortada:** se descarta el 20 % del peso en cada extremo de la escala, para que unos pocos reportes extremos no muevan el color. El score **es** esta media (desde v3 no hay contracción hacia un prior: en v2 un solo reporte «leve» salía «moderada»).
+5. **Publicable:** basta un reporte completo (peso sin decaer ≥ 1; uno enviado en menos de 5 s pesa la mitad). Con pocos reportes el color sale tenue y con confianza baja. Sin reportes, la colonia sale en gris.
+6. **Confianza (baja, media, alta):** depende de la evidencia efectiva (ya decaída), de en cuántos días distintos y desde cuántas redes distintas llegó, de que ningún día concentre más del 60 % y de que el promedio y la mediana no discrepen. Con confianza baja el color puede cambiar con pocos reportes más.
 
 Los umbrales son valores iniciales razonados, **no medidos**: se recalibrarán con datos reales y una semana en modo sombra ([`docs/research/anti-abuso.md`](docs/research/anti-abuso.md) §6). **Límite conocido:** quien aparente ser muchos vecinos distintos (muchas redes, tiempos humanos, varios días) no se distingue de vecinos reales; por eso existe moderación humana y transparencia del método.
 

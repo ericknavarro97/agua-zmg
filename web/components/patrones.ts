@@ -27,11 +27,21 @@ function diagonales(ctx: CanvasRenderingContext2D, paso: number, sentido: 1 | -1
   ctx.stroke();
 }
 
-export function crearPatron(nivel: 1 | 2 | 3 | 4): Patron | null {
+export function crearPatron(nivel: 0 | 1 | 2 | 3 | 4): Patron | null {
   const ctx = lienzo();
   if (!ctx) return null;
   ctx.clearRect(0, 0, T, T);
-  if (nivel === 1) {
+  if (nivel === 0) {
+    // Líneas horizontales (Limpia)
+    ctx.strokeStyle = "rgba(0,50,20,0.28)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (const y of [6, 18]) {
+      ctx.moveTo(0, y);
+      ctx.lineTo(T, y);
+    }
+    ctx.stroke();
+  } else if (nivel === 1) {
     // Puntos
     ctx.fillStyle = "rgba(60,40,0,0.32)";
     for (const [x, y] of [[6, 6], [18, 18]]) {
