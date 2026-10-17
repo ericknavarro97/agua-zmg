@@ -33,10 +33,12 @@ jobs:
         working-directory: web
 
     steps:
+      # Antes del checkout web/ no existe: este paso corre en la raíz
       - name: Revisar secreto
+        working-directory: .
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "::error::Falta el secreto DATABASE_URL_PRODUCCION (cadena directa de Neon). Ver docs/DEPLOY.md §1.2."
+            echo "::error::Falta el secreto DATABASE_URL_PRODUCCION (cadena directa de Neon). Ver docs/DEPLOY.md §1.6."
             exit 1
           fi
 
