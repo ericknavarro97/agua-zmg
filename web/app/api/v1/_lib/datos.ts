@@ -3,7 +3,7 @@
 //
 // El score sale de lib/aggregation.ts (el mismo cálculo que usa el mapa en /api/colonias/scores),
 // así mapa y API pública nunca difieren. Aquí solo se une con los datos de cada colonia.
-import { paraContrato, scoresConCache } from "../../../../lib/aggregation";
+import { cargarSerie, paraContrato, scoresConCache } from "../../../../lib/aggregation";
 import { pool } from "../../../../lib/db";
 import { claveMunicipio } from "../../../../lib/oficial-normalizar";
 
@@ -44,7 +44,7 @@ function propsScore(s: ScorePublico | undefined) {
     score: s?.score ?? null,
     nivel: s?.nivel ?? null,
     confianza: s?.confianza ?? null,
-    // el conteo solo se publica cuando la colonia alcanza el mínimo (evita exponer "1 reporte")
+    // el conteo va con el score: null mientras la colonia no alcanza el mínimo publicable
     n: s?.n ?? null,
     n_huellas: s?.n_huellas ?? null,
     ultimo: s?.ultimo ?? null,
@@ -117,19 +117,8 @@ export async function coloniaDetalle(id: number) {
   const s = (await scoresPorId()).get(id);
 
   const [serie, oficial] = await Promise.all([
-    // La serie diaria solo se publica si la colonia ya alcanza el mínimo (misma regla que el score)
-    s
-      ? pool.query(
-          `SELECT to_char((creado_en AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS dia,
-                  COUNT(*)::int AS n,
-                  round(AVG(gravedad)::numeric, 2)::float AS score
-             FROM reportes
-            WHERE colonia_id = $1 AND estado = 'visible' AND NOT sospechoso
-              AND creado_en >= now() - interval '30 days'
-            GROUP BY 1 ORDER BY 1`,
-          [id],
-        )
-      : Promise.resolve({ rows: [] }),
+    // Misma serie que el mapa (/api/colonias/[id]): mismos topes por red que el score, con cualquier cantidad de reportes
+    cargarSerie(pool, id, 30),
     // Datos externos: NO entran al score; cada fila lleva su fuente y URL
     pool.query(
       // Solo vínculos 'alta' y 'media' (uno 'baja' es una coincidencia dudosa de nombre) y sin filas repetidas de la misma fuente
@@ -153,7 +142,7 @@ export async function coloniaDetalle(id: number) {
     nombre: c.nombre as string,
     municipio: c.municipio as string | null,
     fuente_geom: c.fuente_geom as string,
-    reportes: { ...propsScore(s), serie: serie.rows as { dia: string; n: number; score: number }[] },
+    reportes: { ...propsScore(s), serie },
     oficial: oficial.rows as {
       fuente: string; tipo: string; fecha: string | null; parametro: string;
       valor: number | null; unidad: string | null; url: string; confianza_vinculo: string | null;

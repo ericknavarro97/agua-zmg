@@ -91,7 +91,12 @@ body {
 .sw-lg { width: 1.5rem; height: 1.5rem; }
 .sw-xl { width: 2.75rem; height: 2.75rem; border-radius: 8px; }
 .oscuro .sw { border-color: rgba(255, 255, 255, 0.45); }
-.sw-0 { background-color: #e6ebf1; background-image: none; border-style: dashed; }
+.sw-sd { background-color: #e6ebf1; background-image: none; border-style: dashed; }
+/* Limpia: verde salvia con líneas horizontales (agua en calma), para no confundirla con Leve sin ver el color */
+.sw-0 {
+  background-color: #78b98f;
+  background-image: repeating-linear-gradient(0deg, rgba(0, 50, 20, 0.3) 0 1px, transparent 1px 5px);
+}
 .sw-1 {
   background-color: #f3d27a;
   background-image: radial-gradient(rgba(60, 40, 0, 0.4) 1px, transparent 1.2px);

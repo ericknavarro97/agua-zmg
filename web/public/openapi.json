@@ -160,7 +160,7 @@
         ],
         "operationId": "obtenerColonia",
         "summary": "Detalle de una colonia",
-        "description": "Agregados de reportes de los últimos 30 días y datos externos (oficiales, académicos, periodísticos o ciudadanos) vinculados a la colonia. Los datos externos NO entran al score; cada uno trae su fuente y URL, y `confianza_vinculo` indica qué tan seguro es que corresponda a esta colonia. La serie diaria solo se entrega cuando la colonia alcanza el mínimo publicable.",
+        "description": "Agregados de reportes de los últimos 30 días y datos externos (oficiales, académicos, periodísticos o ciudadanos) vinculados a la colonia. Los datos externos NO entran al score; cada uno trae su fuente y URL, y `confianza_vinculo` indica qué tan seguro es que corresponda a esta colonia.",
         "parameters": [
           {
             "name": "id",
@@ -522,17 +522,18 @@
               "number",
               "null"
             ],
-            "minimum": 1,
+            "minimum": 0,
             "maximum": 4,
-            "description": "Gravedad ponderada 1 (leve) a 4 (crítica); null si no hay reportes suficientes"
+            "description": "Gravedad ponderada de 0 (limpia) a 4 (crítica); null si no hay reportes suficientes. Que se vea limpia no significa que sea segura para beber."
           },
           "nivel": {
             "type": [
               "integer",
               "null"
             ],
-            "minimum": 1,
-            "maximum": 4
+            "minimum": 0,
+            "maximum": 4,
+            "description": "score redondeado: 0 limpia, 1 leve, 2 moderada, 3 grave, 4 crítica (el color del mapa)"
           },
           "confianza": {
             "$ref": "#/components/schemas/Confianza"
@@ -549,7 +550,7 @@
               "integer",
               "null"
             ],
-            "description": "Cuántos dispositivos distintos reportaron (conteo, no identificadores)"
+            "description": "Huellas diarias distintas (solo un conteo). La huella rota cada día: una misma persona que reporta varios días cuenta una vez por día, así que no equivale a personas ni a dispositivos."
           },
           "ultimo": {
             "type": [
@@ -662,7 +663,7 @@
               },
               "serie": {
                 "type": "array",
-                "description": "Últimos 30 días, por día calendario en hora de Guadalajara. Vacía si la colonia no alcanza el mínimo publicable.",
+                "description": "Últimos 30 días, por día calendario en hora de Guadalajara. Solo días con reportes.",
                 "items": {
                   "type": "object",
                   "properties": {
@@ -675,7 +676,7 @@
                     },
                     "score": {
                       "type": "number",
-                      "description": "Promedio simple de gravedad de ese día"
+                      "description": "Media recortada de gravedad (0 a 4) de ese día, con los mismos topes por red que el score y sin decaimiento"
                     }
                   }
                 }

@@ -127,6 +127,13 @@ describe("POST /api/reportes: actualización el mismo día", () => {
     expect(f.gravedad).toBe(1);
   });
 
+  it("201 con gravedad 0 («Limpia») y la base la guarda", async () => {
+    const res = await POST(post("/api/reportes", cuerpoValido(col, { gravedad: 0 }), { ip: "203.0.113.77" }));
+    expect(res.status).toBe(201);
+    const [f] = await filasReportes(col);
+    expect(f.gravedad).toBe(0);
+  });
+
   it("reportar con otra huella (otro dispositivo) en la misma colonia crea otro reporte", async () => {
     await POST(post("/api/reportes", cuerpoValido(col), mismo));
     const res = await POST(post("/api/reportes", cuerpoValido(col), { ip: "203.0.113.10" }));
@@ -137,7 +144,7 @@ describe("POST /api/reportes: actualización el mismo día", () => {
 
 describe("POST /api/reportes: entradas inválidas", () => {
   const invalidos: [string, unknown][] = [
-    ["gravedad 0", { colonia_id: 1, gravedad: 0 }],
+    ["gravedad -1", { colonia_id: 1, gravedad: -1 }],
     ["gravedad 5", { colonia_id: 1, gravedad: 5 }],
     ["gravedad decimal", { colonia_id: 1, gravedad: 2.5 }],
     ["gravedad como texto", { colonia_id: 1, gravedad: "3" }],

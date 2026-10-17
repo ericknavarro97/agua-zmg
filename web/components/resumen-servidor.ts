@@ -3,7 +3,8 @@ import { cacheLife } from "next/cache";
 export type ResumenNiveles = {
   conNivel: number;
   afectadas: number;
-  porNivel: [number, number, number, number];
+  /** Colonias por nivel, índice = nivel (0 limpia a 4 crítica). */
+  porNivel: [number, number, number, number, number];
 };
 
 /**
@@ -21,10 +22,10 @@ export async function obtenerResumen(): Promise<ResumenNiveles | null> {
     const data = (await res.json()) as unknown;
     if (!Array.isArray(data)) return null;
     const reales = data as { id: number; nivel: number; confianza: string }[];
-    const porNivel: [number, number, number, number] = [0, 0, 0, 0];
+    const porNivel: [number, number, number, number, number] = [0, 0, 0, 0, 0];
     let afectadas = 0;
     for (const s of reales) {
-      if (s.nivel >= 1 && s.nivel <= 4) porNivel[s.nivel - 1]++;
+      if (s.nivel >= 0 && s.nivel <= 4) porNivel[s.nivel]++;
       if (s.nivel >= 2 && s.confianza !== "baja") afectadas++;
     }
     return { conNivel: reales.length, afectadas, porNivel };

@@ -10,7 +10,7 @@ const DE_MAYOR_A_MENOR = [...GRAVEDADES].reverse();
 /**
  * Leyenda del mapa. Cada nivel tiene color, trama y nombre escrito.
  * - `tarjeta` (escritorio): columna a la derecha del mapa, de Crítica a Leve, con sus aclaraciones.
- * - `fila` (móvil, dentro del dock): solo las muestras y «Leve → Crítica»; las aclaraciones van detrás de «Ver más».
+ * - `fila` (móvil, dentro del dock): solo las muestras y «Limpia → Crítica»; las aclaraciones van detrás de «Ver más».
  */
 export default function Leyenda({ variante, className = "" }: { variante: "tarjeta" | "fila"; className?: string }) {
   const [abierta, setAbierta] = useState(false);
@@ -56,9 +56,9 @@ export default function Leyenda({ variante, className = "" }: { variante: "tarje
         ))}
         <Muestra nivel={null} />
         <span className="mono-etiqueta ml-1 min-w-0 flex-1 !text-[0.65rem] !tracking-[0.02em]">
-          <span aria-hidden="true">Leve → Crítica · Gris = sin datos</span>
+          <span aria-hidden="true">Limpia → Crítica · Gris = sin datos</span>
           <span className="sr-only">
-            Del amarillo al vino: {GRAVEDADES.map((g) => g.etiqueta).join(", ")}. Gris: sin datos suficientes.
+            Del verde al vino: {GRAVEDADES.map((g) => g.etiqueta).join(", ")}. Gris: sin datos suficientes.
           </span>
         </span>
         <button

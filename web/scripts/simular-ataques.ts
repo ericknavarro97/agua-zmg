@@ -108,7 +108,7 @@ async function main() {
     );
     if (!rows.length) return "no publicable";
     const sc = Number(rows[0].score);
-    return `${sc.toFixed(2)} (color ${Math.min(4, Math.max(1, Math.round(sc)))}, n=${rows[0].n})`;
+    return `${sc.toFixed(2)} (color ${Math.min(4, Math.max(0, Math.round(sc)))}, n=${rows[0].n})`;
   }
 
   async function filasDespuesDe(colonia: number, idBase: number) {

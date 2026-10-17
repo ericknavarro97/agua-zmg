@@ -49,7 +49,7 @@ export async function crearColonia(
 
 export type SemillaReporte = {
   colonia: number;
-  gravedad: 1 | 2 | 3 | 4;
+  gravedad: 0 | 1 | 2 | 3 | 4;
   /** Antigüedad en días (puede ser fraccionaria). Por defecto, hace unos minutos. */
   edadDias?: number;
   huella?: string | null;
@@ -85,7 +85,7 @@ export async function sembrar(r: SemillaReporte): Promise<void> {
 
 /** `n` vecinos distintos (huella y red distintas), repartidos en `dias` días hacia atrás. */
 export async function sembrarVecinos(
-  colonia: number, gravedad: 1 | 2 | 3 | 4, n: number, o: { dias?: number; edadBase?: number; prefijo?: string } = {},
+  colonia: number, gravedad: 0 | 1 | 2 | 3 | 4, n: number, o: { dias?: number; edadBase?: number; prefijo?: string } = {},
 ): Promise<void> {
   const dias = o.dias ?? 1;
   const p = o.prefijo ?? `v${serie}`;

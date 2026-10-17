@@ -99,7 +99,7 @@ Fecha de este documento: 2026-10-08. Las referencias `[§…]` apuntan a [`resea
 
 **Recomendación:** **no publicarlo** en v1 (y evaluar eliminar el campo si no se usa para moderación). Si algún día se publica: moderación previa, botón de "reportar contenido" y términos claros.
 
-**Justificación:** es la mayor fuente de riesgo (datos personales, acusaciones contra terceros, difamación). Los reportes estructurados (gravedad 1-4 y síntomas de un catálogo) son suficientes para pintar el mapa. Hay una discrepancia entre fuentes sobre si la difamación sigue siendo delito penal en Jalisco: **sin resolver**, requiere revisión legal [`comunidad.md`].
+**Justificación:** es la mayor fuente de riesgo (datos personales, acusaciones contra terceros, difamación). Los reportes estructurados (gravedad 0-4 y síntomas de un catálogo) son suficientes para pintar el mapa. Hay una discrepancia entre fuentes sobre si la difamación sigue siendo delito penal en Jalisco: **sin resolver**, requiere revisión legal [`comunidad.md`].
 
 ## 7. Cuánto tiempo se conservan los datos
 

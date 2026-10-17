@@ -113,7 +113,7 @@ export default function ListaColonias({
                     </span>
                     <span className="w-full shrink-0 pl-9 text-xs sm:w-auto sm:pl-0 sm:text-right">
                       <span className="block font-semibold text-tinta">
-                        {nivel ? `${nivel}. ${GRAVEDADES[nivel - 1].etiqueta}` : etiquetaNivel(null)}
+                        {nivel != null ? `${nivel}. ${GRAVEDADES[nivel].etiqueta}` : etiquetaNivel(null)}
                       </span>
                       {s && (
                         <span className="block text-texto-tenue">
