@@ -42,14 +42,14 @@ pnpm dev
    ```
    `pnpm build` no debe necesitar base de datos: las páginas y rutas que consulten la base lo hacen en tiempo de petición.
 4. Abre el *pull request* explicando **qué** cambia y **por qué**, cómo lo probaste y, si toca datos de salud o cifras, **la fuente**. Marca explícitamente lo que no pudiste probar.
-5. La CI (`.github/workflows/ci.yml`) corre tipos, lint, pruebas, migraciones sobre PostGIS y el build, y construye las imágenes Docker. Debe pasar.
+5. La CI (`.github/workflows/ci.yml`) corre tipos, lint, pruebas, migraciones sobre PostGIS y el build, y construye las imágenes Docker. Debe pasar. En cada push a `main`, `.github/workflows/migraciones.yml` aplica las migraciones nuevas a la base de producción (docs/DEPLOY.md §1.6).
 
 ## Estilo de código
 
 - **TypeScript estricto.** Sin `any` salvo justificación en un comentario. Valida entradas de red con `zod`.
 - **Comentarios y mensajes en español**, breves, que expliquen el *porqué* (no repitan el código). Usa español de México en la interfaz.
 - Mantén el estilo del código vecino. No agregues dependencias nuevas sin una razón fuerte: pregunta antes en el *issue*. Si es posible, usa Node, Postgres/PostGIS o código propio.
-- **SQL**: migraciones nuevas en `db/migrations/NNN_nombre.sql` (numeración consecutiva), **idempotentes** (`IF NOT EXISTS`, `OR REPLACE`) y que no rompan datos existentes. Nunca edites una migración ya aplicada; crea una nueva. `pnpm migrate` aplica cada archivo una sola vez, dentro de una transacción.
+- **SQL**: migraciones nuevas en `db/migrations/NNN_nombre.sql` (numeración consecutiva), **idempotentes** (`IF NOT EXISTS`, `OR REPLACE`) y que no rompan datos existentes. Nunca edites una migración ya aplicada; crea una nueva. Como la migración y el despliegue de Vercel corren en paralelo, el código que ya está publicado debe seguir funcionando con la migración aplicada. `pnpm migrate` aplica cada archivo una sola vez, dentro de una transacción.
 - **Pruebas**: lo nuevo con lógica va con prueba (`vitest`). En `web/app/` usa importaciones relativas en los módulos que pruebes, porque no hay configuración de alias para vitest. La agregación y el anti-abuso tienen pruebas; si cambias un parámetro de `web/lib/aggregation.ts`, sube `METODO` y actualiza la documentación de metodología.
 - **Accesibilidad**: contraste suficiente, nunca el color como único canal de información (hay patrones para confianza baja), foco visible, textos alternativos, que funcione en un teléfono modesto con datos móviles y que el HTML siga siendo útil sin JavaScript donde sea posible.
 

@@ -1,0 +1,60 @@
+# Aplica db/migrations/*.sql a la base de PRODUCCIÓN (Neon) en cada push a main.
+# Vercel despliega por su cuenta y no migra: sin esto, el código nuevo puede llegar a una base vieja
+# (pasó con 008_nivel_limpia.sql: los reportes «Limpia» respondían 500).
+# El migrador es idempotente (schema_migrations), así que correrlo en cada push no repite nada.
+name: Migraciones en producción
+
+on:
+  push:
+    branches: [main]
+  # Para reintentar a mano desde la pestaña Actions
+  workflow_dispatch:
+
+# Una sola migración a la vez y nunca se cancela a la mitad (ci.yml sí cancela corridas viejas)
+concurrency:
+  group: migraciones-produccion
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  migrar:
+    name: Migrar base de producción
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      # Cadena DIRECTA de Neon (sin -pooler), con ?sslmode=require
+      DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCCION }}
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Revisar secreto
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Falta el secreto DATABASE_URL_PRODUCCION (cadena directa de Neon). Ver docs/DEPLOY.md §1.2."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # Se llama a tsx directo: `pnpm migrate` lee .env.local, que no existe en CI
+      - name: Aplicar migraciones pendientes
+        run: pnpm exec tsx scripts/migrate.ts

@@ -36,7 +36,7 @@ Resuélvelas (o consciente y explícitamente pospónlas) antes de abrir al públ
 - [ ] `pnpm lint`, `pnpm typecheck` (`next typegen` + `tsc --noEmit`) y `pnpm exec vitest run` pasan en `web/`.
 - [ ] `pnpm build` termina sin errores **sin base de datos disponible** (el build de Docker no tiene base). Las páginas o rutas que consulten la base deben hacerlo en tiempo de petición, no en el build.
 - [ ] El mapa base ya **no** usa `tile.openstreetmap.org` (su política no admite aplicaciones con tráfico alto y puede bloquear sin aviso). El código usa el estilo `positron` de OpenFreeMap, configurable con `NEXT_PUBLIC_MAP_STYLE_URL`.
-- [ ] La base tiene las 6 migraciones aplicadas (`SELECT count(*) FROM schema_migrations;` → 6) y solo colonias reales importadas.
+- [ ] La base tiene todas las migraciones de `db/migrations/` aplicadas (`SELECT nombre FROM schema_migrations ORDER BY 1;` llega hasta el archivo más reciente) y solo colonias reales importadas.
 - [ ] Variables obligatorias definidas (sección 1) y revisada la sección «Antes de publicar» (abajo).
 - [ ] Páginas legales publicadas: `/privacidad`, `/acerca` (descargo "no es información oficial ni consejo médico") y `/metodologia`, con el nombre del responsable ya definido.
 
@@ -98,7 +98,7 @@ Estas variables se leen **al construir** (las páginas informativas se prerender
 
 - [ ] Secretos generados y guardados; `NEXT_PUBLIC_SITE_URL` definida.
 - [ ] Variables del sitio definidas **antes** de construir, o conscientemente vacías (y las páginas lo dicen).
-- [ ] Base con las 6 migraciones y las colonias reales importadas (sección 1.2 o 2.3).
+- [ ] Base con todas las migraciones y las colonias reales importadas (sección 1.2 o 2.3).
 - [ ] Tras desplegar, abre `/acerca`, `/privacidad`, `/que-hacer` y `/datos` y comprueba que muestran lo que esperas (contacto real o «aún por definir»; sin avisos de revisión que no corresponden).
 
 ---
@@ -143,7 +143,8 @@ Notas:
 
 - Se usa `pnpm exec tsx …` (y no `pnpm migrate`) porque los alias de `package.json` leen `web/.env.local`, que puede no existir; así `DATABASE_URL` se toma del entorno.
 - `data/colonias_zmg.geojson` contiene colonias del catálogo INE (corte dic-2020): **aproximadas y no oficiales**, sin las colonias posteriores a 2020. El sitio debe decirlo (ver [`data/raw/README.md`](../data/raw/README.md)).
-- Verifica: `SELECT count(*) FROM colonias;` debe dar 2,170 con el archivo incluido, y `SELECT count(*) FROM schema_migrations;` debe dar 6 (migraciones 001 a 006).
+- Verifica: `SELECT count(*) FROM colonias;` debe dar 2,170 con el archivo incluido, y `SELECT nombre FROM schema_migrations ORDER BY 1;` debe listar todos los archivos de `db/migrations/`.
+- Las migraciones posteriores las aplica la CI en cada push a `main` (sección 1.6); esta corrida manual solo hace falta la primera vez.
 
 ### 1.3 Proyecto en Vercel
 
@@ -161,6 +162,20 @@ Agrega el dominio en Vercel y crea los registros DNS que indique. Después de qu
 ### 1.5 Operación inicial
 
 Sigue [OPERACION.md](OPERACION.md): monitores externos, respaldo nocturno cifrado (`pg_dump` con la cadena directa), simulacro de restauración y tarea diaria de retención (`scripts/purge.ts`).
+
+### 1.6 Migraciones nuevas (CI)
+
+Vercel construye y publica la app, pero **no migra la base**. Si un cambio trae una migración nueva y nadie la aplica, el código nuevo corre contra el esquema viejo (pasó con `008_nivel_limpia.sql`: los reportes «Limpia» respondían 500).
+
+El workflow [`.github/workflows/migraciones.yml`](../.github/workflows/migraciones.yml) corre `scripts/migrate.ts` contra producción en cada push a `main` (y a mano desde la pestaña *Actions* con *Run workflow*). Solo aplica las migraciones que falten.
+
+1. En Neon, abre el proyecto y ve a **Connect**. Desactiva *Connection pooling* y copia la cadena **directa** (sin `-pooler`). Añade `?sslmode=require` si no lo trae.
+2. En GitHub, en el repositorio: *Settings → Secrets and variables → Actions → New repository secret*. Nombre: `DATABASE_URL_PRODUCCION`; valor: esa cadena.
+3. Corre el workflow una vez a mano y revisa que termine en verde.
+
+Sin el secreto el job falla a propósito, con un aviso, para que no pase desapercibido.
+
+El workflow y el despliegue de Vercel arrancan con el mismo push y corren en paralelo. La migración suele terminar en menos de un minuto, antes que el build, pero no está garantizado. Por eso las migraciones deben ser compatibles con el código anterior (CONTRIBUTING.md): agregar columnas con valor por omisión o relajar restricciones, nunca quitar algo que el código desplegado todavía usa.
 
 ---
 
