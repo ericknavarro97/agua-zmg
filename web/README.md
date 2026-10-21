@@ -15,7 +15,7 @@ docker compose up -d                  # desde la raíz del repo: PostGIS en loca
 cd web
 cp .env.example .env.local            # y revisa los valores
 pnpm install
-pnpm migrate                          # aplica db/migrations/*.sql (001 a 006)
+pnpm migrate                          # aplica db/migrations/*.sql (001 a 009)
 pnpm import:colonias ../data/colonias_zmg.geojson --fuente-geom ine_colonias
 pnpm import:oficial --todos           # datos externos con su fuente
 pnpm dev                              # http://localhost:3000
@@ -34,7 +34,7 @@ Los textos que solo puede aportar quien responde por el proyecto (contacto, resp
 | `pnpm e2e:setup` / `pnpm e2e` | Preparan y corren las pruebas de extremo a extremo |
 | `pnpm migrate` | Aplica las migraciones SQL pendientes |
 | `pnpm import:colonias`, `pnpm import:oficial` | Importan polígonos de colonias y datos externos (idempotentes; prueba antes con `--dry-run`) |
-| `pnpm purge` | Anonimiza los identificadores anti-abuso vencidos (tarea diaria) |
+| `pnpm purge` | Anonimiza identificadores y borra comentarios viejos. **No está programado**: hoy se conserva todo (docs/OPERACION.md §4) |
 
 ## Más
 

@@ -1,6 +1,7 @@
 /**
  * Aviso fijo junto a cualquier nivel: la escala describe cómo se ve y huele el agua, no su aptitud de uso.
- * El desabasto se reporta con el síntoma "Sin agua / baja presión", no con un nivel.
+ * El desabasto no es un nivel: se reporta con «Hoy no llegó agua» (gravedad NULL) o, si llega con poca presión,
+ * con el síntoma "Sin agua / baja presión" junto al nivel de lo que se ve.
  */
 export const AVISO_NIVELES =
   "Ningún nivel significa que el agua sea segura para beber o cocinar, ni siquiera «Limpia». La escala describe cómo se ve y huele el agua, no si hay agua.";
@@ -24,10 +25,10 @@ export const SINTOMAS = [
   "Sin agua / baja presión",
 ] as const;
 
-export const SIN_DATOS_COLOR = "#d5dde7";
+/** Síntoma que acompaña siempre a un reporte «Hoy no llegó agua» (el servidor lo agrega si falta). */
+export const SINTOMA_SIN_AGUA: (typeof SINTOMAS)[number] = "Sin agua / baja presión";
 
-/** Mínimo de reportes recientes para pintar una colonia */
-export const MIN_REPORTES = 3;
+export const SIN_DATOS_COLOR = "#d5dde7";
 /** Ventana en días y vida media del peso de cada reporte */
 export const VENTANA_DIAS = 14;
 export const VIDA_MEDIA_DIAS = 7;

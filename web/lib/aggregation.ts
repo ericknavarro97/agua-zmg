@@ -1,18 +1,20 @@
 /**
- * Agregación robusta de reportes ciudadanos -> score por colonia (método "v3").
+ * Agregación robusta de reportes ciudadanos -> score por colonia (método "v4").
  * Ver docs/research/anti-abuso.md §6. El cálculo es una función pura (`agregar`) que se prueba sin base;
  * el SQL solo prepara grupos compactos (colonia, día, red, gravedad) para no traer cada reporte.
  * Escala: 0 (limpia) a 4 (crítica). Se promedia como escala ordinal: una colonia con vecinos que dicen
  * «limpia» y otros que dicen «grave» queda en medio, y la discrepancia baja la confianza (paso 6).
  *
- * Qué cuenta: SOLO reportes con estado='visible' y sospechoso=false, de los últimos VENTANA_DIAS.
+ * Qué cuenta: SOLO reportes con estado='visible' y sospechoso=false, de los últimos VENTANA_DIAS, y con gravedad
+ * (los de «Hoy no llegó agua» tienen gravedad NULL: se cuentan aparte, en `cargarSinAgua`, y no mueven el nivel).
  *
  * Receta (todos los parámetros están en PARAMS; cambiar uno exige subir METODO):
  *  1. Peso de cada reporte x = min(1, kDia/n_dia, kSem/n_sem) * f_concentrada * f_rapido
  *     - n_dia: reportes de la MISMA red (/24 o /48) en esa colonia el mismo día; n_sem: en la semana.
  *       Limita cuánta influencia puede tener una sola red, sin identificar a nadie.
  *     - f_concentrada: una red con >= 6 reportes en un día en la misma colonia pesa x0.25.
- *     - f_rapido: formulario enviado en < 5 s pesa x0.5 (el cliente declara el tiempo: señal débil).
+ *     - f_rapido: formulario enviado en < 5 s pesa x0.5 (el cliente declara el tiempo: señal débil). Un envío SIN
+ *       tiempo declarado (el formulario siempre lo manda; un script puede omitirlo) también pesa x0.5.
  *  2. Decaimiento: w = x * 2^(-edad_dias / vida_media).
  *  3. Media recortada por MASA de peso: se descarta el 20 % del peso en cada extremo de la escala 0-4.
  *     El score ES esta media: desde v3 no se contrae hacia un prior (en v2 un solo reporte «leve» se pintaba
@@ -29,7 +31,7 @@
 import type { Pool } from "pg";
 import { VENTANA_DIAS, VIDA_MEDIA_DIAS } from "./severity";
 
-export const METODO = "v3";
+export const METODO = "v4";
 
 export const PARAMS = {
   ventanaDias: VENTANA_DIAS,
@@ -85,7 +87,8 @@ export type Grupo = {
   edadDias: number;
 };
 
-export type ResumenColonia = { n: number; nHuellas: number; ultimoMs: number };
+/** `ultimoDia`: día local (YYYY-MM-DD) del reporte más reciente. Solo el día: con un reporte, la hora lo delataría. */
+export type ResumenColonia = { n: number; nHuellas: number; ultimoDia: string };
 
 export type ScoreDetallado = {
   id: number;
@@ -94,6 +97,7 @@ export type ScoreDetallado = {
   n: number;
   nHuellas: number;
   confianza: Confianza;
+  /** Día local (YYYY-MM-DD, hora de Guadalajara) del reporte más reciente; nunca la hora. */
   ultimo: string;
   // diagnóstico (no se publica en /api/colonias/scores)
   nEff: number;
@@ -244,7 +248,7 @@ export function agregar(
       n: r.n,
       nHuellas: r.nHuellas,
       confianza: confianzaDe(x, p),
-      ultimo: new Date(r.ultimoMs).toISOString(),
+      ultimo: r.ultimoDia,
       nEff: x.nEff,
       nBruta: x.nBruta,
       recortada: x.recortada,
@@ -313,10 +317,10 @@ export async function cargarGrupos(
             COALESCE(r.red_sem,  'h:' || COALESCE(r.huella, r.id::text)) AS red_sem,
             r.gravedad::int AS gravedad,
             count(*)::int AS n,
-            (count(*) FILTER (WHERE r.tiempo_ms IS NOT NULL AND r.tiempo_ms < $3))::int AS n_rapidos,
+            (count(*) FILTER (WHERE r.tiempo_ms IS NULL OR r.tiempo_ms < $3))::int AS n_rapidos,
             avg(extract(epoch FROM r.creado_en))::float8 AS epoch_medio
        FROM reportes r
-      WHERE r.estado = 'visible' AND NOT r.sospechoso
+      WHERE r.estado = 'visible' AND NOT r.sospechoso AND r.gravedad IS NOT NULL
         AND r.creado_en > $1::timestamptz - make_interval(days => $2::int)
         AND r.creado_en <= $1::timestamptz
         AND ($4::int IS NULL OR r.colonia_id = $4::int)
@@ -340,9 +344,9 @@ export async function cargarResumen(pool: Pool, ahora = new Date(), p = PARAMS):
   const { rows } = await pool.query(
     `SELECT colonia_id, count(*)::int AS n,
             count(DISTINCT huella)::int AS n_huellas,
-            (extract(epoch FROM max(creado_en)) * 1000)::float8 AS ultimo_ms
+            to_char((max(creado_en) AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS ultimo_dia
        FROM reportes
-      WHERE estado = 'visible' AND NOT sospechoso
+      WHERE estado = 'visible' AND NOT sospechoso AND gravedad IS NOT NULL
         AND creado_en > $1::timestamptz - make_interval(days => $2::int)
         AND creado_en <= $1::timestamptz
       GROUP BY colonia_id`,
@@ -351,7 +355,7 @@ export async function cargarResumen(pool: Pool, ahora = new Date(), p = PARAMS):
   // Las filas sin huella (anonimizadas) cuentan como una huella cada una
   const sinHuella = await pool.query(
     `SELECT colonia_id, count(*)::int AS n FROM reportes
-      WHERE estado = 'visible' AND NOT sospechoso AND huella IS NULL
+      WHERE estado = 'visible' AND NOT sospechoso AND gravedad IS NOT NULL AND huella IS NULL
         AND creado_en > $1::timestamptz - make_interval(days => $2::int)
         AND creado_en <= $1::timestamptz
       GROUP BY colonia_id`,
@@ -361,9 +365,31 @@ export async function cargarResumen(pool: Pool, ahora = new Date(), p = PARAMS):
   return new Map(
     rows.map((r) => [
       r.colonia_id,
-      { n: r.n, nHuellas: r.n_huellas + (extra.get(r.colonia_id) ?? 0), ultimoMs: r.ultimo_ms },
+      { n: r.n, nHuellas: r.n_huellas + (extra.get(r.colonia_id) ?? 0), ultimoDia: r.ultimo_dia },
     ]),
   );
+}
+
+/**
+ * Reportes de «Hoy no llegó agua» (gravedad NULL) de una colonia en la ventana del nivel, con el mismo filtro de
+ * visibilidad. Se publica el conteo y las personas distintas; no entra en el nivel.
+ */
+export async function cargarSinAgua(
+  pool: Pool,
+  coloniaId: number,
+  ahora = new Date(),
+  p = PARAMS,
+): Promise<{ n: number; ultimo: string | null }> {
+  const { rows } = await pool.query(
+    `SELECT count(*)::int AS n,
+            to_char((max(creado_en) AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS ultimo
+       FROM reportes
+      WHERE colonia_id = $3 AND estado = 'visible' AND NOT sospechoso AND gravedad IS NULL
+        AND creado_en > $1::timestamptz - make_interval(days => $2::int)
+        AND creado_en <= $1::timestamptz`,
+    [ahora.toISOString(), p.ventanaDias, coloniaId],
+  );
+  return { n: rows[0]?.n ?? 0, ultimo: rows[0]?.ultimo ?? null };
 }
 
 /** Serie de los últimos `dias` días de una colonia (ver `serieDiaria`). */

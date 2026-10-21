@@ -36,7 +36,7 @@ export default function QueHacer() {
       etiqueta="Qué hacer · Guía con fuentes"
       indice={INDICE}
       titulo="Qué hacer si tu agua sale turbia o sospechosa"
-      resumen="Pasos sencillos con fuentes. Última verificación de las fuentes: 8 de octubre de 2026."
+      resumen="Pasos sencillos con fuentes. Última verificación de las fuentes: 21 de octubre de 2026."
     >
       <Aviso tono="alerta">
         <p>
@@ -99,7 +99,7 @@ export default function QueHacer() {
         <li>
           Según la misma dependencia, el agua de la llave puede usarse para lavar ropa y trastes, limpiar y bañarse, pero
           debe evitarse cuando tenga color marcado, turbiedad intensa, sedimentos o mal olor<SegunMedios />.{" "}
-          <Fuente href={F.nmasRecomendaciones} />
+          <Fuente href={F.imparcialUsos} />
         </li>
         <li>
           La CDC (autoridad de salud de Estados Unidos) también aconseja usar agua embotellada para beber, cocinar y
@@ -236,9 +236,11 @@ export default function QueHacer() {
           tapados<SegunMedios />. <Fuente href={F.nmasRecomendaciones} />
         </li>
         <li>
-          Contexto: el 7 de octubre de 2026 se reportó que el gobierno de Jalisco aplicará tandeos rotativos de dos a tres
-          días por colonia<SegunMedios />. Guardar agua exige más cuidado con la limpieza de los recipientes.{" "}
-          <Fuente href={F.procesoCrisis} />
+          Contexto: desde el 15 de octubre de 2026 y hasta marzo de 2027, el SIAPA aplica una rotación del servicio
+          (tandeo) en 627 colonias: cada sector tiene baja presión dos o tres días por semana, con cortes de hasta 24 horas
+          por día programado<SegunMedios />. <Fuente href={F.unotvTandeo} /> <Fuente href={F.cronicaRotacion} /> Puedes
+          consultar los días de tu domicilio en la plataforma del SIAPA. <Fuente href={F.siapaRotacion}>consulta</Fuente>{" "}
+          Guardar agua exige más cuidado con la limpieza de los recipientes.
         </li>
       </ul>
 
@@ -316,7 +318,7 @@ export default function QueHacer() {
           tampoco la sustituye. <Fuente href={F.epaPlomo} />
         </li>
         <li>
-          La única forma de saber si hubo exposición es una prueba de plomo en sangre. Habla con tu médico sobre si conviene
+          La mejor forma de saber si hubo exposición es una prueba de plomo en sangre. Habla con tu médico sobre si conviene
           hacerla, sobre todo en niñas, niños y embarazadas. <Fuente href={F.cdcPlomo} />
         </li>
         <li>

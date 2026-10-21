@@ -2,9 +2,9 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API pública de Agua ZMG",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "summary": "Gravedad del agua por colonia en la Zona Metropolitana de Guadalajara, según reportes de vecinos.",
-    "description": "Datos abiertos y agregados por colonia. NO incluye huellas, comentarios ni ningún dato personal.\n\nLos valores reflejan reportes ciudadanos sin verificar (percepción), no mediciones de laboratorio; no es información oficial ni consejo médico. Que una colonia no tenga score no significa que el agua sea buena: significa que aún no hay reportes.\n\nUna colonia recibe score desde su primer reporte; con pocos reportes la confianza es baja (ver /metodologia).\n\nLímites de colonias: aproximados, derivados del catálogo de colonias del INE (corte dic-2020); no son oficiales.",
+    "description": "Datos abiertos y agregados por colonia. NO incluye huellas, comentarios ni ningún dato personal.\n\nLos valores reflejan reportes ciudadanos sin verificar (percepción), no mediciones de laboratorio; no es información oficial ni consejo médico. Que una colonia no tenga score no significa que el agua sea buena: significa que aún no hay reportes.\n\nUna colonia recibe score desde su primer reporte; con pocos reportes la confianza es baja (ver /metodologia).\n\nLímites de colonias: aproximados, derivados del catálogo de colonias del INE (corte dic-2020); no son oficiales.\n\nCambios dentro de v1 (documentados en docs/API.md, «Cambios del contrato»): el 17-oct-2026 `nivel` y `score` pasaron de 1-4 a 0-4 (nivel 0, «limpia»); el 21-oct-2026 `ultimo` pasó de instante (date-time) a día (date, hora de Guadalajara) y `metadata.metodo` dice qué versión del método calculó los datos.",
     "license": {
       "name": "ODbL-1.0 (provisional, pendiente de confirmación del equipo)",
       "url": "https://opendatacommons.org/licenses/odbl/1-0/"
@@ -239,7 +239,7 @@
         ],
         "operationId": "resumenCsv",
         "summary": "Resumen por colonia en CSV",
-        "description": "Una fila por colonia, solo agregados. Columnas: id, nombre, municipio, score, nivel, confianza, n_reportes, n_huellas, ultimo_reporte, fecha_corte, licencia. Codificación UTF-8, saltos de línea CRLF. Sin huellas, sin comentarios, sin datos personales.",
+        "description": "Una fila por colonia, solo agregados. Columnas: id, nombre, municipio, score, nivel, confianza, n_reportes, n_huellas, ultimo_reporte, fecha_corte, licencia. Codificación UTF-8 con BOM, saltos de línea CRLF. Sin huellas, sin comentarios, sin datos personales.",
         "parameters": [
           {
             "name": "municipio",
@@ -483,6 +483,13 @@
           },
           "n_colonias": {
             "type": "integer"
+          },
+          "metodo": {
+            "type": "string",
+            "examples": [
+              "v4"
+            ],
+            "description": "Versión del método de cálculo (lib/aggregation.ts, METODO). Cambia cuando cambian las reglas o los parámetros; ver /metodologia#cambios."
           }
         }
       },
@@ -557,7 +564,8 @@
               "string",
               "null"
             ],
-            "format": "date-time"
+            "format": "date",
+            "description": "Día (YYYY-MM-DD, hora de Guadalajara) del reporte más reciente contado; nunca la hora. null si no hay score."
           }
         }
       },
@@ -643,13 +651,19 @@
                 "type": [
                   "number",
                   "null"
-                ]
+                ],
+                "minimum": 0,
+                "maximum": 4,
+                "description": "Igual que en ColoniaProps.score"
               },
               "nivel": {
                 "type": [
                   "integer",
                   "null"
-                ]
+                ],
+                "minimum": 0,
+                "maximum": 4,
+                "description": "Igual que en ColoniaProps.nivel"
               },
               "confianza": {
                 "$ref": "#/components/schemas/Confianza"
@@ -659,7 +673,8 @@
                   "string",
                   "null"
                 ],
-                "format": "date-time"
+                "format": "date",
+                "description": "Día (YYYY-MM-DD, hora de Guadalajara) del reporte más reciente contado; nunca la hora. null si no hay score."
               },
               "serie": {
                 "type": "array",

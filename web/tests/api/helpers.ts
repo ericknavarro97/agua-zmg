@@ -49,7 +49,8 @@ export async function crearColonia(
 
 export type SemillaReporte = {
   colonia: number;
-  gravedad: 0 | 1 | 2 | 3 | 4;
+  /** null = «Hoy no llegó agua» */
+  gravedad: 0 | 1 | 2 | 3 | 4 | null;
   /** Antigüedad en días (puede ser fraccionaria). Por defecto, hace unos minutos. */
   edadDias?: number;
   huella?: string | null;

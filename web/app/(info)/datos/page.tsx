@@ -148,7 +148,7 @@ export default function Datos() {
           <tr><td><code>confianza</code></td><td><code>baja</code>, <code>media</code> o <code>alta</code>: qué tan respaldado está el nivel. Ver <Link href="/metodologia#confianza">metodología</Link>.</td></tr>
           <tr><td><code>n</code></td><td>Reportes contados en la ventana vigente (14 días).</td></tr>
           <tr><td><code>n_huellas</code></td><td>Huellas diarias distintas (solo un conteo). La huella rota cada día: una misma persona que reporta varios días cuenta una vez por día, así que no equivale a personas ni a dispositivos.</td></tr>
-          <tr><td><code>ultimo</code></td><td>Momento del reporte más reciente contado.</td></tr>
+          <tr><td><code>ultimo</code></td><td>Día (hora de Guadalajara) del reporte más reciente contado. Solo el día, nunca la hora.</td></tr>
           <tr><td><code>fuente_geom</code></td><td>Procedencia del polígono de la colonia.</td></tr>
         </tbody>
       </table>

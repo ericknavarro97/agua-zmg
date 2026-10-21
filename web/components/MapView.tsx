@@ -28,7 +28,7 @@ const TEXTOS_ES: Record<string, string> = {
   "AttributionControl.MapFeedback": "Comentarios sobre el mapa",
   "FullscreenControl.Enter": "Pantalla completa",
   "FullscreenControl.Exit": "Salir de pantalla completa",
-  "MapLibreCanvasMap": "Mapa de colonias. Si prefieres una lista, usa el botón «Lista» de arriba.",
+  "MapLibreCanvasMap": "Mapa de colonias. Si prefieres una lista, usa el botón «Ver lista».",
 };
 
 export type Foco = { bbox: Bbox; nonce: number; zoomMax?: number; conPanel?: boolean };

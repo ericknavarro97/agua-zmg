@@ -68,13 +68,12 @@ describe("proxy: cabeceras de seguridad", () => {
     expect((await cargar()).proxy(pide("/")).headers.get("strict-transport-security")).toMatch(/max-age=\d+/);
   });
 
-  it("la CSP prohíbe incrustar el sitio salvo /embed, bloquea <object> y formularios hacia fuera", async () => {
+  it("la CSP prohíbe incrustar el sitio, bloquea <object> y formularios hacia fuera", async () => {
     const { csp } = await cargar();
     expect(csp("/")).toMatch(/frame-ancestors 'none'/);
     expect(csp("/api/v1/colonias")).toMatch(/frame-ancestors 'none'/);
-    expect(csp("/embed")).toMatch(/frame-ancestors \*/);
-    expect(csp("/embed/mapa")).toMatch(/frame-ancestors \*/);
-    expect(csp("/embedx")).toMatch(/frame-ancestors 'none'/);
+    // no existe una vista para incrustar: /embed tampoco se puede meter en un iframe
+    expect(csp("/embed")).toMatch(/frame-ancestors 'none'/);
     for (const d of ["object-src 'none'", "base-uri 'self'", "form-action 'self'"]) expect(csp("/")).toContain(d);
   });
 
@@ -92,14 +91,10 @@ describe("proxy: cabeceras de seguridad", () => {
     expect(csp("/")).toMatch(/img-src [^;]*https:\/\/tile\.openstreetmap\.org/);
   });
 
-  it("CSP_MAPA_ORIGENES definido reemplaza los orígenes; CSP_EMBED_ANCESTORS vacío vuelve a '*'", async () => {
+  it("CSP_MAPA_ORIGENES definido reemplaza los orígenes", async () => {
     vi.stubEnv("CSP_MAPA_ORIGENES", "https://tiles.ejemplo.test");
-    vi.stubEnv("CSP_EMBED_ANCESTORS", "");
     const { csp } = await cargar();
     expect(csp("/")).toContain("https://tiles.ejemplo.test");
     expect(csp("/")).not.toContain("openfreemap");
-    expect(csp("/embed")).toMatch(/frame-ancestors \*(;|$)/);
-    vi.stubEnv("CSP_EMBED_ANCESTORS", "https://medio.example");
-    expect((await cargar()).csp("/embed")).toMatch(/frame-ancestors https:\/\/medio\.example(;|$)/);
   });
 });

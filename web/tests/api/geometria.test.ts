@@ -119,6 +119,8 @@ describe("GET /api/colonias/geometria: filtros", () => {
   it("?detalle= inválido: 400; válidos: 200", async () => {
     expect((await geo("?detalle=ultra")).status).toBe(400);
     for (const d of ["completo", "alto", "medio", "bajo"]) expect((await geo(`?detalle=${d}`)).status).toBe(200);
+    // claves heredadas de Object: con `in` pasaban y devolvían todo sin polígonos, cacheado un día
+    for (const d of ["constructor", "toString", "__proto__", "hasOwnProperty"]) expect((await geo(`?detalle=${d}`)).status, d).toBe(400);
   });
 });
 

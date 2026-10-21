@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { aCsv, celda, COLUMNAS } from "./csv";
+import { aCsv, BOM, celda, COLUMNAS } from "./csv";
 import type { FilaResumen } from "./datos";
 
 const fila = (o: Partial<FilaResumen>): FilaResumen => ({
   id: 1, nombre: "Centro", municipio: "Guadalajara",
-  score: 2.5, nivel: 3, confianza: "media", n: 7, n_huellas: 6, ultimo: "2026-10-08T10:00:00Z", ...o,
+  score: 2.5, nivel: 3, confianza: "media", n: 7, n_huellas: 6, ultimo: "2026-10-07", ...o,
 });
 
 describe("celda", () => {
@@ -26,9 +26,11 @@ describe("celda", () => {
 describe("aCsv", () => {
   it("escribe encabezado y una fila por colonia con CRLF", () => {
     const csv = aCsv([fila({}), fila({ id: 2, nombre: "Sin datos", score: null, nivel: null, confianza: null, n: null, n_huellas: null, ultimo: null })], "2026-10-08", "ODbL-1.0");
-    const lineas = csv.split("\r\n");
+    // BOM UTF-8 para que Excel en español lea bien los acentos
+    expect(csv.startsWith(BOM)).toBe(true);
+    const lineas = csv.slice(BOM.length).split("\r\n");
     expect(lineas[0]).toBe(COLUMNAS.join(","));
-    expect(lineas[1]).toBe("1,Centro,Guadalajara,2.5,3,media,7,6,2026-10-08T10:00:00Z,2026-10-08,ODbL-1.0");
+    expect(lineas[1]).toBe("1,Centro,Guadalajara,2.5,3,media,7,6,2026-10-07,2026-10-08,ODbL-1.0");
     expect(lineas[2]).toBe("2,Sin datos,Guadalajara,,,,,,,2026-10-08,ODbL-1.0");
     expect(lineas[3]).toBe("");
   });

@@ -330,7 +330,7 @@ async function main() {
       const honestos: Grupo[] = Array.from({ length: 6 }, (_, i) => ({
         coloniaId: 1, dia: dia((i % 3) + 0.3), red: `h${i}`, redSem: `h${i}`, gravedad: 1, n: 1, nRapidos: 0, edadDias: (i % 3) + 0.3,
       }));
-      const resumenDe = (gs: Grupo[]) => new Map([[1, { n: gs.reduce((a, g) => a + g.n, 0), nHuellas: gs.reduce((a, g) => a + g.n, 0), ultimoMs: Date.now() }]]);
+      const resumenDe = (gs: Grupo[]) => new Map([[1, { n: gs.reduce((a, g) => a + g.n, 0), nHuellas: gs.reduce((a, g) => a + g.n, 0), ultimoDia: new Date().toISOString().slice(0, 10) }]]);
       const fmt = (gs: Grupo[]) => {
         const s = agregar(gs, resumenDe(gs))[0];
         return s ? `${s.score.toFixed(2)} (color ${s.nivel}, confianza ${s.confianza}, n_eff=${s.nEff.toFixed(1)})` : "no publicable";

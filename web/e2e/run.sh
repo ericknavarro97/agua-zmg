@@ -163,7 +163,7 @@ eq "API de capa: solo expone id, n y medicion (sin fuentes ni notas)" "id,medici
 ab open "$URL" >/dev/null; wl; sleep 3
 nohas "la leyenda ya no menciona la capa ni «externos»" "xterno" "$(txt)"
 eq "no hay casilla de capa en la leyenda" "0" "$(ev 'document.querySelectorAll("section[aria-label=\"Leyenda del mapa\"] input").length')"
-has "la leyenda conserva la escala de gravedad" "Gravedad que reportan los vecinos" "$(txt)"
+has "la leyenda conserva la escala de gravedad" "Lo que reportan" "$(txt)"
 re "el mapa sigue sin errores de página con la capa" '^$' "$(ab errors | tr -d '\n ')"
 shot 05b-capa-por-cantidad
 fi
@@ -363,7 +363,7 @@ eq "el foco es visible (outline o ring) en el elemento enfocado" "true" "$(ev '(
 re "la región en vivo (aria-live) existe para anunciar resultados" '^[1-9]' "$(ev 'document.querySelectorAll("[aria-live]").length')"
 ab open "$URL/?colonia=$(nueva_colonia 5)" >/dev/null; wl; sleep 1.5
 eq "el formulario oculta el señuelo anti-bots a tecnología asistiva" "true" "$(ev '(()=>{const i=document.querySelector("input[name=referencia_interna]");return !!i&&!!i.closest("[aria-hidden=true]")&&i.tabIndex===-1})()')"
-eq "el patrón (no solo el color) distingue los niveles en la leyenda" "true" "$(ev '/Leve/.test(document.body.innerText)&&/Moderada/.test(document.body.innerText)&&/Grave/.test(document.body.innerText)&&/Crítica/.test(document.body.innerText)')"
+eq "el patrón (no solo el color) distingue los niveles en la leyenda" "true" "$(ev '/Limpia/.test(document.body.innerText)&&/Leve/.test(document.body.innerText)&&/Moderada/.test(document.body.innerText)&&/Grave/.test(document.body.innerText)&&/Crítica/.test(document.body.innerText)')"
 fi
 
 # ═════════════ 12. PRIVACIDAD DEL VISITANTE ═════════════
@@ -422,7 +422,12 @@ eq "reporte válido: 201" "201" "$(post 203.0.113.10 "$UA" "$B")"
 eq "mismo reporte enseguida: 429 con Retry-After" "429" "$(post 203.0.113.10 "$UA" "$B")"
 has "429 de reenvío trae Retry-After" "retry-after" "$(tr 'A-Z' 'a-z' < "$OUT/hdr.txt")"
 b=$(j "$c" 9);                                    eq "gravedad fuera de rango: 400" "400" "$(post 203.0.113.11 "$UA" "$b")"
-b=$(j "$c" 0);                                    eq "gravedad 0: 400" "400" "$(post 203.0.113.11 "$UA" "$b")"
+b=$(j "$c" -1);                                   eq "gravedad negativa: 400" "400" "$(post 203.0.113.11 "$UA" "$b")"
+eq "sin gravedad (campo ausente): 400" "400" "$(post 203.0.113.11 "$UA" "{\"colonia_id\":$c}")"
+# 0 («Limpia», desde v3) y null («Hoy no llegó agua», desde v4) son válidos; otra red para no gastar el cupo de 203.0.113.x
+b=$(j "$c" 0 '"hp":"","tiempo_ms":9000');        eq "gravedad 0 (limpia): 201" "201" "$(post 192.0.2.10 "$UA" "$b")"
+b=$(j "$c" null '"hp":"","tiempo_ms":9000');     eq "gravedad null (no llegó agua): 201" "201" "$(post 192.0.2.11 "$UA" "$b")"
+eq "«no llegó agua» se guarda sin gravedad y con su síntoma" "1" "$(sql "SELECT count(*) FROM reportes WHERE colonia_id = $c AND gravedad IS NULL AND 'Sin agua / baja presión' = ANY (sintomas)")"
 b=$(j "$c" 2 '"sintomas":["<script>"]');          eq "síntoma fuera del catálogo: 400" "400" "$(post 203.0.113.11 "$UA" "$b")"
 eq "JSON roto: 400" "400" "$(post 203.0.113.11 "$UA" '{no es json')"
 eq "colonia inexistente: 404" "404" "$(post 203.0.113.12 "$UA" "$(j 99999999 2)")"

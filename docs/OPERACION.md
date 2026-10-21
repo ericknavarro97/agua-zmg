@@ -74,7 +74,9 @@ Un respaldo que no se ha restaurado no cuenta. Haz el simulacro **antes** del la
 | Secretos (`HASH_SALT`, `ADMIN_TOKEN`, contraseñas) | Gestor de contraseñas | Con acceso de al menos dos personas |
 | Datos fuente (`data/*.geojson`, `data/oficial/*.csv`) | Repositorio / copia externa | Son la entrada de los scripts de importación. `data/raw/` (cientos de MB) no va al repo: conserva los `.zip` originales aparte |
 
-Importante: la base contiene identificadores HMAC (`huella`, `red_hash`, `red_sem`) mientras no se hayan anonimizado, y comentarios. **Cifra los respaldos** (p. ej. con `age` o `gpg`) y no los subas a un lugar público.
+Importante: la base contiene identificadores HMAC (`huella`, `red_hash`, `red_sem`) y comentarios, que se conservan (§4). **Cifra los respaldos** (p. ej. con `age` o `gpg`) y no los subas a un lugar público.
+
+**Estado en producción (2026-10-21):** no hay respaldo propio programado; solo existe el historial de restauración de Neon. El aviso de privacidad v0.2 lo dice así. Si se programa un respaldo, actualiza el apartado «Cuánto tiempo» de `/privacidad`.
 
 ### 3.2 Respaldo y restauración con `pg_dump` **(probado en local con Docker)**
 
@@ -109,7 +111,7 @@ VPS (cron del anfitrión, diario a las 03:30):
 30 3 * * * cd /opt/agua-zmg && docker compose -f docker-compose.prod.yml exec -T db pg_dump -U agua -Fc agua_zmg | age -r AGE_PUBLIC_KEY > /var/backups/agua/agua_zmg-$(date +\%F).dump.age && find /var/backups/agua -mtime +14 -delete
 ```
 
-**Retención de respaldos (obligatoria, la promete `/privacidad`):** los respaldos contienen huellas y comentarios, así que deben expirar a los 14 días: el `find -mtime +14 -delete` de arriba para lo local y una regla de ciclo de vida (*lifecycle rule*) de 14 días en el bucket externo. Sin ella, el aviso de privacidad (que dice «hasta unos 45 días en total») deja de ser cierto.
+**Retención de respaldos:** los respaldos contienen huellas y comentarios. El `find -mtime +14 -delete` de arriba los expira a los 14 días; usa la misma regla de ciclo de vida (*lifecycle rule*) en el bucket externo. Cualquiera que sea el plazo, publícalo en `/privacidad`.
 
 Luego copia `/var/backups/agua` a un almacenamiento externo (Cloudflare R2 o Backblaze B2 tienen cuota gratuita según `despliegue.md` §5; `rclone` es una herramienta común para eso). Conserva la clave privada de `age` fuera del servidor.
 
@@ -126,6 +128,8 @@ Vercel + Neon: Neon conserva historial para restaurar (6 h en el plan gratis; ha
 
 ## 4. Retención de datos (`pnpm purge`)
 
+**Política vigente (decisión del 2026-10-21, aviso de privacidad v0.2):** se conserva todo (reportes, comentarios e identificadores) como registro histórico de la comunidad. `pnpm purge` **no** está programado a propósito, y el servicio `retencion` de `docker-compose.prod.yml` solo arranca con `--profile retencion`. Lo que sigue describe la herramienta por si la política cambia; antes de programarla, cambia el aviso de privacidad.
+
 Principio de diseño (`research/anti-abuso.md` §9): la IP y el *User-Agent* completo **nunca** se guardan. Lo que se guarda por reporte son identificadores HMAC (huella diaria, red diaria, red semanal, familia del navegador, hash del comentario) y, si el vecino lo escribió, un comentario ya depurado de teléfonos, correos y enlaces. Esos identificadores solo sirven para limitar abuso dentro de la ventana de cálculo (14 días).
 
 `web/scripts/purge.ts` (`pnpm purge`, ya definido en `web/package.json`; sin `.env.local` ejecuta `pnpm exec tsx scripts/purge.ts` con `DATABASE_URL` en el entorno) hace la retención. Por defecto, a los **30 días** (`--dias=N`, mínimo 14 para no perder evidencia que aún cuenta en los scores):
@@ -134,16 +138,16 @@ Principio de diseño (`research/anti-abuso.md` §9): la IP y el *User-Agent* com
 - pone en `NULL` los comentarios (texto libre: el riesgo de datos personales no desaparece con el hash);
 - borra `rate_limits` de más de 2 días.
 
-El reporte conserva colonia, gravedad y síntomas. Es idempotente y trabaja por lotes. Prueba primero con `--dry-run` (solo cuenta, no cambia nada). Debe correr **todos los días**: si no corre, la retención no está activa y el aviso de privacidad **no debe prometerla**.
+El reporte conserva colonia, gravedad y síntomas. Es idempotente y trabaja por lotes. Prueba primero con `--dry-run` (solo cuenta, no cambia nada). Si se adopta, debe correr **todos los días**: si no corre, la retención no está activa y el aviso de privacidad **no debe prometerla**.
 
-Programación **(sin probar)**:
+Programación, si la política cambia **(sin probar)**:
 
 | Despliegue | Cómo |
 |---|---|
-| VPS con compose | **Ya incluido**: el servicio `retencion` de `docker-compose.prod.yml` corre `purge.ts` cada 24 h (revisa `docker compose logs retencion`; sin probar en un VPS real). Alternativa, cron del anfitrión: `15 4 * * * cd /opt/agua-zmg && docker compose -f docker-compose.prod.yml run --rm migrate pnpm exec tsx scripts/purge.ts` (la imagen `migrate` incluye `scripts/` y ya recibe `DATABASE_URL`) |
+| VPS con compose | **Ya incluido, apagado**: el servicio `retencion` de `docker-compose.prod.yml` corre `purge.ts` cada 24 h si se levanta con `--profile retencion` (revisa `docker compose logs retencion`; sin probar en un VPS real). Alternativa, cron del anfitrión: `15 4 * * * cd /opt/agua-zmg && docker compose -f docker-compose.prod.yml run --rm migrate pnpm exec tsx scripts/purge.ts` (la imagen `migrate` incluye `scripts/` y ya recibe `DATABASE_URL`) |
 | Vercel + Neon | GitHub Action con *schedule* diario que ejecute `pnpm exec tsx scripts/purge.ts` con `DATABASE_URL` como *secret*. Alternativa: *Cron Jobs* de Vercel apuntando a un endpoint protegido (hoy no existe: habría que crearlo) |
 
-Comprobación mensual: confirma que no quedan identificadores viejos:
+Comprobación mensual (solo si la retención está programada): confirma que no quedan identificadores viejos:
 
 ```sql
 SELECT count(*) FROM reportes
@@ -191,7 +195,7 @@ Pregúntate, en este orden:
 | Ráfaga clara de baja diversidad | `ocultar` los reportes de la ráfaga, con la regla citada | Moderador humano |
 | Dudoso | Dejar en `revision` y esperar corroboración independiente de otros días | Moderador |
 | Se comprobó que era legítimo | `restaurar` | Moderador |
-| Datos personales en un comentario | Ocultar el reporte o borrar el comentario; el texto nunca se publica | Moderador |
+| Datos personales en un comentario | Borrar el comentario (o el reporte) cuanto antes: **los comentarios se publican al instante**; tarda alrededor de un minuto en dejar de verse | Moderador |
 | Ataque sostenido | `MODO_ATAQUE=1` (§5.2), publicar nota (§5.6), endurecer límites | Responsable técnico |
 
 Todo cambio pasa por la función SQL `moderar()`, que cambia el estado y escribe la bitácora en una sola transacción; la bitácora (`moderacion_log`) es de **solo agregado** (no admite edición ni borrado). El sistema automático no puede ocultar, solo degradar.
@@ -216,14 +220,14 @@ Quién modera, con qué turnos y con qué respaldo es una decisión humana pendi
 ### 6.1 Reglas
 
 - **Se oculta por cómo llegó el reporte, no por lo que dice.** Motivos válidos: ráfaga/automatización, spam, datos personales o contenido ilícito en el comentario, reporte duplicado. Un reporte incómodo, exagerado o con el que no coincidimos **no** es motivo.
-- El comentario libre **se muestra en la página de la colonia** (solo día y gravedad, sin hora ni identificadores) cuando se envía después del aviso del formulario (columna `reportes.comentario_publico`, migración 007); los anteriores nunca se publican. Se depura al recibirlo (teléfonos, correos, enlaces y @usuarios se enmascaran), un reporte oculto o en revisión retira su comentario, y se borra a los 30 días con la tarea de retención (§4). Moderación: `/admin` muestra todos los comentarios y permite borrarlos. Los nombres y direcciones NO se detectan automáticamente: revisa `/admin` con frecuencia.
+- El comentario libre **se muestra en la página de la colonia en cuanto se envía, sin revisión previa** (solo día y gravedad o «No llegó agua», sin hora ni identificadores), si se envió después del aviso del formulario (columna `reportes.comentario_publico`, migración 007); los anteriores nunca se publican. Se depura al recibirlo (teléfonos, correos, enlaces y @usuarios se enmascaran) y un reporte oculto o en revisión retira su comentario. Al borrarlo, la caché de la página de la colonia tarda alrededor de un minuto en soltarlo. Se conserva con el resto de los datos (§4). Moderación: `/admin` muestra todos los comentarios y permite borrarlos. Los nombres y direcciones NO se detectan automáticamente: revisa `/admin` con frecuencia.
 - Acciones: `degradar` (revisión), `ocultar` (decisión humana) y `restaurar`. Todas exigen motivo de al menos 10 caracteres y quedan en la bitácora.
 - Sin reportes **no** significa agua buena. Moderar a la baja una colonia legítima daña a quienes más lo necesitan.
 
 ### 6.2 Acceso al panel
 
 - `ADMIN_TOKEN`: mínimo 16 caracteres; sin él `/admin` queda **deshabilitado**. Genera uno con `openssl rand -hex 32`.
-- Inicio de sesión: cambia el token por una cookie firmada y `HttpOnly` de 8 horas. Hay límite de intentos fallidos por red: solo cuentan los intentos con credencial incorrecta (las peticiones anónimas no), y la credencial correcta siempre entra; por eso el `ADMIN_TOKEN` debe ser largo y aleatorio (`openssl rand -hex 24`).
+- Inicio de sesión: cambia el token por una cookie firmada y `HttpOnly` de 8 horas. Hay límite de intentos fallidos por red: solo cuentan los intentos con credencial incorrecta (las peticiones anónimas no). Una red bloqueada recibe 429 con **cualquier** token, también el correcto, durante 15 minutos; una sesión ya abierta sigue funcionando. Si te bloqueas, espera o entra desde otra red. Aun así, el `ADMIN_TOKEN` debe ser largo y aleatorio (`openssl rand -hex 24`).
 - Rotar el token cierra todas las sesiones abiertas. Hazlo cuando salga un moderador.
 - Acceso por *script*: `Authorization: Bearer <ADMIN_TOKEN>`. Nunca pegues el token en chats ni tickets.
 
@@ -232,7 +236,7 @@ Quién modera, con qué turnos y con qué respaldo es una decisión humana pendi
 1. Abrir `/admin`, revisar alertas abiertas y cola en revisión.
 2. Resolver cada alerta con acción y motivo.
 3. Revisar una muestra de reportes recientes de las colonias con más actividad.
-4. Verificar que `pnpm purge` corrió (§4).
+4. Revisar los comentarios nuevos: se publican al instante.
 5. Anotar novedades para el siguiente turno.
 
 ### 6.4 Apelaciones

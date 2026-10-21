@@ -1,7 +1,7 @@
 /** Carga de reportes desde Postgres: qué cuenta y qué no (base desechable propia). */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  PARAMS, calcularScores, cargarGrupos, cargarResumen, invalidarCacheScores, refrescarScoresPronto, scoresConCache,
+  PARAMS, calcularScores, cargarGrupos, cargarResumen, cargarSinAgua, invalidarCacheScores, refrescarScoresPronto, scoresConCache,
 } from "../../lib/aggregation";
 import { crearBase, insertarColonia, insertarReporte, type BaseTemporal } from "./_db";
 
@@ -90,7 +90,28 @@ describe("qué reportes cuentan", () => {
     const grupos = await cargarGrupos(bd.pool);
     expect(new Set(grupos.map((g) => g.red)).size).toBe(5);
   });
-  it("reportes rápidos se cuentan por tiempo_ms < rapidoMs", async () => {
+  it("«Hoy no llegó agua» (gravedad null) no entra en el nivel y se cuenta aparte", async () => {
+    const c = await insertarColonia(bd.pool, "Lomas");
+    await vecinos(c, 2, { gravedad: 3 });
+    for (let i = 0; i < 3; i++) await insertarReporte(bd.pool, { colonia_id: c, gravedad: null, hace_horas: 2 + i });
+    // una fuera de la ventana y una oculta no cuentan
+    await insertarReporte(bd.pool, { colonia_id: c, gravedad: null, hace_horas: 24 * (PARAMS.ventanaDias + 1) });
+    await insertarReporte(bd.pool, { colonia_id: c, gravedad: null, hace_horas: 1, estado: "oculto" });
+    expect((await cargarGrupos(bd.pool)).every((g) => g.gravedad !== null)).toBe(true);
+    expect((await cargarResumen(bd.pool)).get(c)!.n).toBe(2);
+    const [s] = await calcularScores(bd.pool);
+    expect(s.nivel).toBe(3);
+    const sinAgua = await cargarSinAgua(bd.pool, c);
+    expect(sinAgua.n).toBe(3);
+    expect(sinAgua.ultimo).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+  it("una colonia con solo reportes «sin agua» no se publica (no hay nada que pintar)", async () => {
+    const c = await insertarColonia(bd.pool, "Lomas");
+    await insertarReporte(bd.pool, { colonia_id: c, gravedad: null, hace_horas: 1 });
+    expect(await calcularScores(bd.pool)).toEqual([]);
+    expect((await cargarSinAgua(bd.pool, c)).n).toBe(1);
+  });
+  it("reportes rápidos: tiempo_ms < rapidoMs, o sin tiempo declarado (v4)", async () => {
     const c = await insertarColonia(bd.pool, "Lomas");
     // Unos segundos en el pasado: con hace_horas 0 el reloj de Postgres (microsegundos) puede quedar por delante del de
     // Node (milisegundos) y la consulta (creado_en <= ahora) dejaría fuera el último reporte, sobre todo en CI rápido.
@@ -100,7 +121,8 @@ describe("qué reportes cuentan", () => {
     await insertarReporte(bd.pool, { ...base, huella: "c", tiempo_ms: null });
     const [g] = await cargarGrupos(bd.pool);
     expect(g.n).toBe(3);
-    expect(g.nRapidos).toBe(1);
+    // «a» (rápido) y «c» (sin tiempo: el formulario siempre lo manda; omitirlo no debe valer más)
+    expect(g.nRapidos).toBe(2);
   });
   it("una red que manda muchos reportes pesa poco frente a vecinos distintos", async () => {
     const c = await insertarColonia(bd.pool, "Lomas");

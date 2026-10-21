@@ -2,6 +2,14 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { GRAVEDADES } from "@/lib/severity";
+import type { Confianza } from "./tipos";
+
+/** Cómo se lee la confianza fuera de la página (el texto viaja solo, por WhatsApp o redes) */
+const CONFIANZA_CORTA: Record<Confianza, string> = {
+  baja: "confianza baja: pocos reportes",
+  media: "confianza media",
+  alta: "confianza alta",
+};
 
 const sinSuscripcion = () => () => {};
 
@@ -14,11 +22,13 @@ export default function Compartir({
   nombre,
   municipio,
   etiquetaNivel,
+  confianza = null,
 }: {
   id: number;
   nombre: string;
   municipio: string | null;
   etiquetaNivel: string | null;
+  confianza?: Confianza | null;
 }) {
   // En el servidor no hay origen ni Web Share; en el navegador sí (sin romper la hidratación)
   const origen = useSyncExternalStore(sinSuscripcion, () => window.location.origin, () => "");
@@ -26,10 +36,11 @@ export default function Compartir({
   const url = origen ? `${origen}/?colonia=${id}` : "";
   const [copiado, setCopiado] = useState<"si" | "no" | null>(null);
 
-  // La etiqueta sola se malinterpreta al compartirse: va con su definición corta
+  // La etiqueta sola se malinterpreta al compartirse: va con su definición corta, la confianza y el aviso de que
+  // ningún nivel (ni «Limpia») significa agua segura para beber
   const definicion = GRAVEDADES.find((g) => g.etiqueta === etiquetaNivel)?.detalle;
   const texto = etiquetaNivel
-    ? `Agua en ${nombre}${municipio ? ` (${municipio})` : ""}: nivel «${etiquetaNivel}»${definicion ? ` (vecinos reportan: ${definicion.charAt(0).toLowerCase()}${definicion.slice(1)})` : ""}. Información ciudadana, no oficial. Suma tu reporte:`
+    ? `Agua en ${nombre}${municipio ? ` (${municipio})` : ""}: nivel «${etiquetaNivel}»${definicion ? ` (vecinos reportan: ${definicion.charAt(0).toLowerCase()}${definicion.slice(1)})` : ""}${confianza ? `, ${CONFIANZA_CORTA[confianza]}` : ""}. Información ciudadana, no oficial; ningún nivel significa que el agua sea segura para beber. Suma tu reporte:`
     : `¿Cómo está el agua en ${nombre}${municipio ? ` (${municipio})` : ""}? Aún faltan reportes de vecinos. Reporta la tuya:`;
 
   async function compartir() {

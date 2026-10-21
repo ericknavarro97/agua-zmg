@@ -47,6 +47,7 @@ describe("GET /api/colonias/[id]: contrato", () => {
     expect(await json(res)).toEqual({
       id: c, nombre: "Del Fresno", municipio: "Guadalajara", fuente_geom: "ine_colonias",
       reportes: { n: null, n_huellas: null, score: null, nivel: null, confianza: null, ultimo: null, serie: [] },
+      sin_agua: { n: 0, ultimo: null },
       comentarios: [],
       oficial: [],
     });
@@ -61,7 +62,7 @@ describe("GET /api/colonias/[id]: contrato", () => {
     expect(typeof d.reportes.score).toBe("number");
     expect(d.reportes.nivel).toBeGreaterThanOrEqual(1);
     expect(["baja", "media", "alta"]).toContain(d.reportes.confianza);
-    expect(new Date(d.reportes.ultimo).toISOString()).toBe(d.reportes.ultimo);
+    expect(d.reportes.ultimo).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(d.reportes.serie).toHaveLength(3);
     for (const p of d.reportes.serie) {
       expect(p.dia).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -108,6 +109,19 @@ describe("GET /api/colonias/[id]: contrato", () => {
     const d = await json(await detalle(c));
     expect(d.reportes.nivel).toBeNull();
     expect(d.reportes.serie[0].n).toBe(1);
+  });
+
+  it("«Hoy no llegó agua»: se cuenta en sin_agua, no mueve el nivel, y su comentario sale con gravedad null", async () => {
+    const c = await crearColonia();
+    await sembrarVecinos(c, 1, 2);
+    await sembrar({ colonia: c, gravedad: null, edadDias: 1, comentario: "no llega desde el viernes", comentarioPublico: true });
+    await sembrar({ colonia: c, gravedad: null, edadDias: 2 });
+    await sembrar({ colonia: c, gravedad: null, edadDias: 1, estado: "oculto" });
+    const d = await json(await detalle(c));
+    expect(d.reportes.n).toBe(2);
+    expect(d.reportes.nivel).toBe(1);
+    expect(d.sin_agua).toEqual({ n: 2, ultimo: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) });
+    expect(d.comentarios).toEqual([{ dia: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), gravedad: null, texto: "no llega desde el viernes" }]);
   });
 
   it("comentarios: solo los que su autor aceptó mostrar, visibles y no sospechosos, con día y gravedad (sin hora)", async () => {
@@ -183,6 +197,13 @@ describe("GET /api/colonias/[id]: contrato", () => {
     expect(d.oficial.some((o: { parametro: string }) => o.parametro === "queja")).toBe(false);
     expect(d.oficial.filter((o: { fuente: string }) => o.fuente === "OTRA")).toHaveLength(1);
     expect(d.oficial.find((o: { fuente: string }) => o.fuente === "OTRA").confianza_vinculo).toBe("alta");
+  });
+
+  it("/api/oficial: un min_vinculo heredado de Object («constructor», «toString») es 400, no 503", async () => {
+    for (const v of ["constructor", "toString", "__proto__"]) {
+      expect((await oficial(get(`/api/oficial?min_vinculo=${v}`))).status, v).toBe(400);
+    }
+    expect((await oficial(get("/api/oficial?limit=1.5"))).status).toBe(200);
   });
 
   it("/api/oficial: por defecto sin vínculos 'baja' ni duplicados; con ?min_vinculo=baja aparecen", async () => {

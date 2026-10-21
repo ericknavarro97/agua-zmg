@@ -7,7 +7,7 @@ import type { NextRequest } from "next/server";
 // y rompe el HTML estático/prerenderizado (cacheComponents) que hace barato servir esto en una crisis.
 // A cambio, script-src lleva 'unsafe-inline' (los scripts de arranque de Next son en línea). Lo que sí
 // bloquea: scripts y estilos de otros orígenes, <object>, <base> ajeno, formularios hacia fuera, y que otro
-// sitio nos meta en un iframe (salvo /embed). Si algún día se necesita CSP estricta, hay que pasar a nonce
+// sitio nos meta en un iframe. Si algún día se necesita CSP estricta, hay que pasar a nonce
 // (ver docs de Next: guides/content-security-policy) y pagar el costo de renderizado dinámico.
 
 /**
@@ -22,11 +22,10 @@ const MAPA_ORIGENES = (
   .split(/\s+/)
   .filter(Boolean);
 
-/** Quién puede incrustar /embed/* en un iframe. Por defecto cualquiera (medios, colectivos). */
-const EMBED_ANCESTORS = process.env.CSP_EMBED_ANCESTORS || "*";
-
 export function csp(pathname: string, dev = process.env.NODE_ENV !== "production"): string {
-  const esEmbed = pathname === "/embed" || pathname.startsWith("/embed/");
+  // Ninguna página se puede incrustar en un iframe. Si algún día existe una vista para incrustar (p. ej. /embed),
+  // esa ruta necesitará su propio frame-ancestors.
+  void pathname;
   const mapa = MAPA_ORIGENES.join(" ");
   const directivas = [
     "default-src 'self'",
@@ -42,7 +41,7 @@ export function csp(pathname: string, dev = process.env.NODE_ENV !== "production
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    `frame-ancestors ${esEmbed ? EMBED_ANCESTORS : "'none'"}`,
+    "frame-ancestors 'none'",
   ];
   if (!dev) directivas.push("upgrade-insecure-requests");
   return directivas.join("; ");

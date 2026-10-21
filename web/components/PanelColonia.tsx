@@ -7,7 +7,7 @@ import Compartir from "./Compartir";
 import ComentariosVecinos from "./ComentariosVecinos";
 import DatosOficiales from "./DatosOficiales";
 import FormularioReporte from "./FormularioReporte";
-import { CONFIANZA, ChipNivel, etiquetaNivel, haceCuanto, haceCuantoCorto, Muestra, nivelDeScore } from "./niveles";
+import { CONFIANZA, ChipNivel, etiquetaNivel, haceCuanto, haceCuantoCorto, Muestra, MuestraSinAgua, nivelDeScore } from "./niveles";
 import Sparkline from "./Sparkline";
 import type { ColoniaProps, DetalleColonia, Score } from "./tipos";
 
@@ -52,10 +52,12 @@ export default function PanelColonia({
   const enfocarTitulo = useRef(modoInicial === "ficha");
   const idHoja = useId();
 
-  // Detalle de la colonia
+  // Detalle de la colonia. Tras reportar (intento > 0) se pide fresco: sin la caché del navegador y con una URL única
+  // para saltar la de la CDN; así el historial y los comentarios muestran lo recién enviado.
   useEffect(() => {
     const ctl = new AbortController();
-    fetch(`/api/colonias/${colonia.id}`, { signal: ctl.signal })
+    const url = intento > 0 ? `/api/colonias/${colonia.id}?fresco=${Date.now()}` : `/api/colonias/${colonia.id}`;
+    fetch(url, { signal: ctl.signal, cache: intento > 0 ? "no-store" : "default" })
       .then((r) => {
         if (!r.ok) throw new Error(String(r.status));
         return r.json() as Promise<DetalleColonia>;
@@ -107,6 +109,8 @@ export default function PanelColonia({
   const n = rep?.n ?? score?.n ?? 0;
   const ultimo = rep?.ultimo ?? score?.ultimo ?? null;
   const ultimoCorto = haceCuantoCorto(ultimo);
+  // «Hoy no llegó agua»: se cuenta aparte y no entra en el nivel
+  const sinAgua = detalle?.sin_agua?.n ?? 0;
 
   const resumen = nivel != null
     ? confianza
@@ -191,8 +195,14 @@ export default function PanelColonia({
                 </span>
               )}
             </>
-          ) : (
+          ) : sinAgua === 0 ? (
             <span>Sin reportes recientes</span>
+          ) : null}
+          {sinAgua > 0 && (
+            <span>
+              <span className="text-white">{sinAgua}</span> sin agua
+              <span className="sr-only"> (reportes de que no llegó agua; no cambian el nivel)</span>
+            </span>
           )}
         </p>
         <button
@@ -252,6 +262,16 @@ export default function PanelColonia({
                     <strong>Sin reportes no significa que el agua sea buena</strong>: significa que todavía no sabemos.
                   </p>
                 )}
+                {sinAgua > 0 && (
+                  <p className="mt-2 flex items-start gap-2 text-[#3b4f5c]">
+                    <MuestraSinAgua />
+                    <span>
+                      {sinAgua === 1 ? "1 reporte" : `${sinAgua} reportes`} de que <strong>no llegó agua</strong> en los últimos{" "}
+                      {VENTANA_DIAS} días{detalle?.sin_agua?.ultimo ? ` (el último, ${haceCuanto(detalle.sin_agua.ultimo)})` : ""}.
+                      Se cuentan aparte: no cambian el nivel.
+                    </span>
+                  </p>
+                )}
                 <p className="mt-2 text-xs text-texto-tenue">
                   Es lo que reportan vecinos, no una medición oficial ni un análisis de laboratorio.{" "}
                   <strong>Ningún nivel significa que el agua sea segura para beber:</strong> mira{" "}
@@ -293,6 +313,7 @@ export default function PanelColonia({
                 nombre={colonia.nombre}
                 municipio={colonia.municipio}
                 etiquetaNivel={nivel != null ? etiquetaNivel(nivel) : null}
+                confianza={nivel != null ? confianza : null}
               />
 
               <p className="mt-5 text-xs text-texto-tenue">

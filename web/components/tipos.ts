@@ -19,6 +19,7 @@ export type Score = {
   n: number;
   n_huellas: number;
   confianza: Confianza;
+  /** Día (YYYY-MM-DD, hora de Guadalajara) del reporte más reciente; nunca la hora */
   ultimo: string;
 };
 
@@ -40,8 +41,8 @@ export type DatoOficial = {
 /** Colonia con datos externos vinculados (marca del mapa, no es un nivel de gravedad) */
 export type Externo = { id: number; n: number; medicion: boolean };
 
-/** Comentario que su autor aceptó mostrar (solo el día, sin hora ni identificadores) */
-export type ComentarioPublico = { dia: string; gravedad: number; texto: string };
+/** Comentario que su autor aceptó mostrar (solo el día, sin hora ni identificadores). gravedad null = «Hoy no llegó agua». */
+export type ComentarioPublico = { dia: string; gravedad: number | null; texto: string };
 
 export type PuntoSerie = { dia: string; n: number; score: number | null };
 
@@ -60,6 +61,8 @@ export type DetalleColonia = {
     ultimo: string | null;
     serie: PuntoSerie[];
   };
+  /** Reportes «Hoy no llegó agua» de la ventana del nivel (no entran en el nivel) */
+  sin_agua?: { n: number; ultimo: string | null };
   comentarios?: ComentarioPublico[];
   oficial: DatoOficial[];
 };

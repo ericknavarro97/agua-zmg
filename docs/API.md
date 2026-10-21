@@ -23,7 +23,7 @@ La licencia viaja con los datos: cabecera `Link: <…>; rel="license"`, cabecera
 
 - Base: el mismo origen del sitio, por ejemplo `https://TU-DOMINIO/api/v1/...`.
 - Solo `GET`, `HEAD` y `OPTIONS`.
-- Respuestas en UTF-8. Fechas en ISO 8601 (UTC); los días de la serie son días calendario en hora de Guadalajara (`America/Mexico_City`).
+- Respuestas en UTF-8. Instantes (`metadata.generado`) en ISO 8601 (UTC). Los días (`ultimo`, los de la serie, `fecha_corte`) son días calendario `YYYY-MM-DD` en hora de Guadalajara (`America/Mexico_City`).
 - **Caché:** `Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=600, stale-if-error=3600`. Los datos pueden tener hasta unos minutos de retraso. No hagas polling más rápido que cada 60 s.
 - **Compresión y `ETag`:** GeoJSON y CSV se sirven comprimidos (brotli o gzip según `Accept-Encoding`) y con `ETag`; si repites la petición con `If-None-Match` recibes `304` sin cuerpo.
 - **Errores:** JSON `{"error": "..."}` con el código HTTP correspondiente (`400` parámetro inválido, `404` no existe, `503` servicio no disponible).
@@ -34,14 +34,14 @@ La licencia viaja con los datos: cabecera `Link: <…>; rel="license"`, cabecera
 | Campo | Significado |
 |---|---|
 | `score` | Gravedad promedio ponderada de 0 (limpia) a 4 (crítica). Que se vea limpia **no** significa que sea segura para beber. `null` si la colonia aún no alcanza el mínimo publicable. |
-| `nivel` | `score` redondeado a entero 0-4 (el color del mapa): 0 limpia, 1 leve, 2 moderada, 3 grave, 4 crítica. Hasta el método v2 el rango era 1-4; el 0 se agregó en v3 (17-oct-2026). |
+| `nivel` | `score` redondeado a entero 0-4 (el color del mapa): 0 limpia, 1 leve, 2 moderada, 3 grave, 4 crítica. Hasta el método v2 el rango era 1-4; el 0 se agregó en v3 (17-oct-2026). `metadata.metodo` dice qué método calculó los datos. |
 | `confianza` | `baja`, `media` o `alta`: qué tan respaldado está el score (cuánta evidencia efectiva, en cuántos días y desde cuántas redes distintas). Con `baja` el color puede cambiar con pocos reportes más. Se explica en `/metodologia`. |
-| `n` | Reportes contados en la ventana vigente (14 días). `null` si no se alcanza el mínimo (no se publican conteos de 1 o 2 reportes). |
+| `n` | Reportes contados en la ventana vigente (14 días). `null` si la colonia aún no alcanza el mínimo publicable (desde el método v2 basta un reporte completo, así que sí se publican conteos de 1). Los reportes «Hoy no llegó agua» no tienen gravedad y no se cuentan aquí. |
 | `n_huellas` | Huellas diarias distintas (solo un conteo). La huella rota cada día: una misma persona que reporta varios días cuenta una vez por día, así que no equivale a personas ni a dispositivos. No se entregan identificadores. |
-| `ultimo` | Momento del reporte más reciente contado. |
+| `ultimo` | Día (`YYYY-MM-DD`, hora de Guadalajara) del reporte más reciente contado. Solo el día: con pocos reportes, la hora señalaría el momento exacto en que alguien reportó. |
 | `fuente_geom` | Procedencia del polígono (p. ej. `ine_colonias`). |
 
-El cálculo (decaimiento por antigüedad, tope de influencia por red, media recortada, mínimo de evidencia y de huellas) vive en [`web/lib/aggregation.ts`](../web/lib/aggregation.ts) y es el **mismo** que usa el mapa. Los parámetros están versionados (`METODO = "v3"`).
+El cálculo (decaimiento por antigüedad, tope de influencia por red, media recortada, mínimo de evidencia y de huellas) vive en [`web/lib/aggregation.ts`](../web/lib/aggregation.ts) y es el **mismo** que usa el mapa. Los parámetros están versionados (`METODO` en el código; el campo `metadata.metodo` de cada respuesta dice cuál produjo los datos).
 
 ## `GET /api/v1`
 
@@ -75,7 +75,7 @@ curl -s "https://TU-DOMINIO/api/v1/colonias?con_datos=1&sin_geometria=1" | jq '.
     "confianza": "media",
     "n": 14,
     "n_huellas": 11,
-    "ultimo": "2026-10-08T17:42:10.000Z"
+    "ultimo": "2026-10-08"
   },
   "geometry": null
 }
@@ -97,7 +97,7 @@ Detalle de una colonia.
   "fuente_geom": "ine_colonias",
   "reportes": {
     "score": 2.842, "nivel": 3, "confianza": "media",
-    "n": 14, "n_huellas": 11, "ultimo": "2026-10-08T17:42:10.000Z",
+    "n": 14, "n_huellas": 11, "ultimo": "2026-10-08",
     "serie": [ { "dia": "2026-10-07", "n": 3, "score": 3 } ]
   },
   "oficial": [
@@ -117,7 +117,7 @@ Detalle de una colonia.
 
 ## `GET /api/v1/resumen.csv`
 
-Una fila por colonia, solo agregados. UTF-8, saltos CRLF, encabezado en la primera fila. Descarga con `Content-Disposition: attachment`.
+Una fila por colonia, solo agregados. UTF-8 con BOM (para que Excel lea bien los acentos; los lectores de CSV comunes lo ignoran), saltos CRLF, encabezado en la primera fila. Descarga con `Content-Disposition: attachment`.
 
 Columnas: `id, nombre, municipio, score, nivel, confianza, n_reportes, n_huellas, ultimo_reporte, fecha_corte, licencia`.
 
@@ -141,7 +141,7 @@ Responde `503` con `"ok": false, "db": false` si la base de datos no contesta (v
 
 - Cita la fuente y la fecha de corte (`metadata.generado` o `fecha_corte`).
 - No presentes el color de una colonia como diagnóstico oficial ni como "agua potable / no potable". Es un resumen de reportes de vecinos.
-- No intentes reidentificar a quien reportó. La API no expone ese dato y el proyecto anonimiza los identificadores con una tarea de retención (por defecto a los 30 días; ver OPERACION.md).
+- No intentes reidentificar a quien reportó. La API no expone ningún identificador ni la hora de los reportes.
 - Si encuentras un error o quieres integrar el proyecto con una organización, abre un *issue* (ver [CONTRIBUTING.md](../CONTRIBUTING.md)).
 
 ## Para quien mantiene el código
@@ -150,4 +150,11 @@ Responde `503` con `"ok": false, "db": false` si la base de datos no contesta (v
 - Las listas se guardan 60 s en memoria por instancia y los filtros (`municipio`, `con_datos`) se aplican sobre esa copia: variar los parámetros no multiplica las consultas a la base. El cuerpo final, su `ETag` y sus versiones comprimidas se calculan una vez por minuto y combinación de parámetros (máximo 12 combinaciones en memoria).
 - Si la base falla, se sirve la última copia en memoria (hasta 1 h) y, detrás de un CDN, `stale-if-error`.
 - Cambiar la licencia: variables `DATOS_LICENCIA_NOMBRE` y `DATOS_LICENCIA_URL` (ver `web/.env.example`). También hay que actualizar `info.license` en `openapi.json`.
-- Cambios incompatibles de formato = nueva versión de ruta (`/api/v2`), no modificar `/api/v1`.
+- Cambios incompatibles de formato = nueva versión de ruta (`/api/v2`), no modificar `/api/v1`. Las dos excepciones que ya ocurrieron están en «Cambios del contrato»; cualquier otra debe registrarse ahí, subir `info.version` en `openapi.json` y reflejarse en `metadata.metodo` si cambia el cálculo.
+
+## Cambios del contrato
+
+| Fecha | Cambio | Por qué no hubo `/api/v2` |
+|---|---|---|
+| 2026-10-21 | `ultimo` pasa de instante ISO 8601 (`2026-10-08T17:42:10.000Z`) a día (`2026-10-08`), también la columna `ultimo_reporte` del CSV. Nuevo campo `metadata.metodo`. El CSV empieza con BOM UTF-8. OpenAPI 1.1.0. | Privacidad: con un solo reporte, la hora identificaba el momento exacto en que alguien reportó. |
+| 2026-10-17 | `nivel` y `score` pasan de 1-4 a 0-4 (nivel 0, «limpia»). | Cambio de método (v3); los valores 1-4 conservan su significado. Un cliente que indexe colores con `nivel - 1` debe ajustarse. |

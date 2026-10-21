@@ -320,24 +320,20 @@ const COLS_REPORTE = `r.id::int AS id, r.colonia_id, c.nombre AS colonia, c.muni
   r.sintomas, r.comentario, r.creado_en, r.estado, r.sospechoso, r.motivo, r.canal, r.tiempo_ms, r.comentario_publico`;
 
 export async function resumenModeracion(db: Db) {
-  const [estados, sosp, dia, vencidos] = await Promise.all([
+  const [estados, sosp, dia] = await Promise.all([
     db.query<{ estado: string; n: number }>("SELECT estado, count(*)::int AS n FROM reportes GROUP BY estado"),
     db.query<{ motivo: string; n: number }>(
       `SELECT COALESCE(motivo, '(sin motivo)') AS motivo, count(*)::int AS n FROM reportes
         WHERE sospechoso AND creado_en > now() - interval '7 days' GROUP BY 1 ORDER BY 2 DESC`,
     ),
     db.query<{ n: number }>("SELECT count(*)::int AS n FROM reportes WHERE creado_en > now() - interval '24 hours'"),
-    // Retención: reportes de más de 31 días que aún conservan identificadores o comentario (la tarea purge no corrió)
-    db.query<{ n: number }>(
-      `SELECT count(*)::int AS n FROM reportes
-        WHERE creado_en < now() - interval '31 days' AND (anonimizado_en IS NULL OR comentario IS NOT NULL)`,
-    ),
   ]);
+  // Sin alerta de «retención vencida»: desde el 21-oct-2026 los datos se conservan como registro de la comunidad
+  // (aviso de privacidad v0.2) y la tarea purge no está programada a propósito.
   return {
     por_estado: Object.fromEntries(estados.rows.map((r) => [r.estado, r.n])) as Record<string, number>,
     sospechosos_7d: sosp.rows,
     reportes_24h: dia.rows[0].n,
-    retencion_vencida: vencidos.rows[0].n,
   };
 }
 

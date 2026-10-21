@@ -92,6 +92,11 @@ body {
 .sw-xl { width: 2.75rem; height: 2.75rem; border-radius: 8px; }
 .oscuro .sw { border-color: rgba(255, 255, 255, 0.45); }
 .sw-sd { background-color: #e6ebf1; background-image: none; border-style: dashed; }
+/* «No llegó agua»: no es un nivel; vaso vacío (blanco con una diagonal), distinto de «sin datos» */
+.sw-sa {
+  background-color: #fff;
+  background-image: linear-gradient(135deg, transparent 44%, rgba(15, 23, 42, 0.6) 44% 56%, transparent 56%);
+}
 /* Limpia: verde salvia con líneas horizontales (agua en calma), para no confundirla con Leve sin ver el color */
 .sw-0 {
   background-color: #78b98f;

@@ -105,13 +105,15 @@ export async function insertarColonia(pool: Pool, nombre: string, municipio = "G
 
 export type ReporteFila = {
   colonia_id: number;
-  gravedad?: number;
+  /** null = «Hoy no llegó agua». Por defecto 2. */
+  gravedad?: number | null;
   huella?: string | null;
   red_hash?: string | null;
   red_sem?: string | null;
   ua_familia?: string | null;
   comentario?: string | null;
   comentario_hash?: string | null;
+  /** Por defecto 15000 (como el formulario, que siempre lo manda); null = envío sin tiempo, que pesa como rápido. */
   tiempo_ms?: number | null;
   canal?: string;
   sospechoso?: boolean;
@@ -130,9 +132,9 @@ export async function insertarReporte(pool: Pool, r: ReporteFila): Promise<numbe
              (now() - make_interval(secs => $13::float8 * 3600)) AT TIME ZONE 'America/Mexico_City')
      RETURNING id::int AS id`,
     [
-      r.colonia_id, r.gravedad ?? 2, r.huella === undefined ? `h-${randomBytes(6).toString("hex")}` : r.huella,
+      r.colonia_id, r.gravedad === undefined ? 2 : r.gravedad, r.huella === undefined ? `h-${randomBytes(6).toString("hex")}` : r.huella,
       r.red_hash ?? null, r.red_sem ?? null, r.ua_familia ?? null, r.comentario ?? null, r.comentario_hash ?? null,
-      r.tiempo_ms ?? null, r.canal ?? "web", r.sospechoso ?? false, r.estado ?? "visible", r.hace_horas ?? 0,
+      r.tiempo_ms === undefined ? 15000 : r.tiempo_ms, r.canal ?? "web", r.sospechoso ?? false, r.estado ?? "visible", r.hace_horas ?? 0,
     ],
   );
   return rows[0].id as number;

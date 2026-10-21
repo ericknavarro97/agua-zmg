@@ -58,13 +58,6 @@ async function Panel() {
         <Salir />
       </div>
 
-      {resumen.retencion_vencida > 0 && (
-        <p role="alert" className="mb-4 rounded border border-amber-600 bg-amber-50 p-2 text-amber-950">
-          Retención vencida: {resumen.retencion_vencida} reporte(s) de más de 31 días aún conservan identificadores o comentario.
-          La tarea diaria <code>pnpm purge</code> no está corriendo; el aviso de privacidad promete borrarlos a los 30 días.
-        </p>
-      )}
-
       {resumen.sospechosos_7d.length > 0 && (
         <p className="mb-4 rounded border border-slate-300 p-2">
           Marcados como sospechosos en 7 días (no cuentan y no están en la cola):{" "}

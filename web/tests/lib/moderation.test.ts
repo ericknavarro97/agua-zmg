@@ -318,14 +318,8 @@ describe("lecturas del panel de administración", () => {
     expect(r.por_estado).toEqual({ visible: 2, revision: 1 });
     expect(r.sospechosos_7d).toEqual([{ motivo: "honeypot", n: 1 }]);
     expect(r.reportes_24h).toBe(2);
-    expect(r.retencion_vencida).toBe(0);
-  });
-  it("resumenModeracion avisa de retención vencida (más de 31 días sin anonimizar)", async () => {
-    await nuevo({ hace_horas: 24 * 40 });
-    await nuevo({ hace_horas: 24 * 5 });
-    expect((await resumenModeracion(bd.pool)).retencion_vencida).toBe(1);
-    await bd.pool.query("UPDATE reportes SET anonimizado_en = now(), comentario = NULL");
-    expect((await resumenModeracion(bd.pool)).retencion_vencida).toBe(0);
+    // los datos se conservan (aviso de privacidad v0.2): ya no hay alerta de retención
+    expect(r).not.toHaveProperty("retencion_vencida");
   });
   it("colaRevision va de los más viejos a los más nuevos y respeta el límite", async () => {
     const viejo = await nuevo({ estado: "revision", hace_horas: 10 });

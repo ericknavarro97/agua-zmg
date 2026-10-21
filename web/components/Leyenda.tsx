@@ -9,7 +9,7 @@ const DE_MAYOR_A_MENOR = [...GRAVEDADES].reverse();
 
 /**
  * Leyenda del mapa. Cada nivel tiene color, trama y nombre escrito.
- * - `tarjeta` (escritorio): columna a la derecha del mapa, de Crítica a Leve, con sus aclaraciones.
+ * - `tarjeta` (escritorio): columna a la derecha del mapa, de Crítica a Limpia, con sus aclaraciones.
  * - `fila` (móvil, dentro del dock): solo las muestras y «Limpia → Crítica»; las aclaraciones van detrás de «Ver más».
  */
 export default function Leyenda({ variante, className = "" }: { variante: "tarjeta" | "fila"; className?: string }) {
@@ -39,7 +39,8 @@ export default function Leyenda({ variante, className = "" }: { variante: "tarje
           </li>
         </ul>
         <p className="mt-2.5 border-t border-borde pt-2 text-xs leading-snug text-texto-tenue">
-          Gris no significa agua buena. Color tenue: pocos reportes.{" "}
+          <strong className="font-semibold text-tinta">Ningún nivel significa que el agua sea segura para beber.</strong>{" "}
+          Gris no significa agua buena. Color tenue: pocos reportes o ya de hace días.{" "}
           <Link href="/metodologia" className="text-marca underline">
             Cómo se calcula
           </Link>
@@ -72,7 +73,7 @@ export default function Leyenda({ variante, className = "" }: { variante: "tarje
         </button>
       </div>
       <div id={idDetalle} hidden={!abierta} className="px-1 pb-3 text-[0.8125rem] leading-snug text-texto-dock">
-        <p>Color tenue = pocos reportes (confianza baja). Gris no significa agua buena.</p>
+        <p>Color tenue = pocos reportes o ya de hace días (confianza baja). Gris no significa agua buena.</p>
         <p className="mt-1 font-medium text-white">
           Ningún nivel significa que el agua sea segura para beber.{" "}
           <Link href="/que-hacer" className="text-acento underline">

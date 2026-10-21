@@ -134,6 +134,47 @@ describe("POST /api/reportes: actualización el mismo día", () => {
     expect(f.gravedad).toBe(0);
   });
 
+  it("201 con gravedad null («Hoy no llegó agua»): se guarda sin gravedad, con su síntoma y no entra en el nivel", async () => {
+    const res = await POST(post("/api/reportes", cuerpoValido(col, { gravedad: null, sintomas: ["Mal olor"] }), { ip: "203.0.113.78" }));
+    expect(res.status).toBe(201);
+    const [f] = await filasReportes(col);
+    expect(f.gravedad).toBeNull();
+    expect(f.estado).toBe("visible");
+    // el servidor agrega el síntoma de desabasto si no vino
+    expect(f.sintomas).toEqual(["Mal olor", "Sin agua / baja presión"]);
+    const lista = (await json(await scores())) as { id: number }[];
+    expect(lista.find((s) => s.id === col)).toBeUndefined();
+  });
+
+  it("la gravedad es obligatoria: ausente responde 400 (null hay que enviarlo explícito)", async () => {
+    const { gravedad: _g, ...sinGravedad } = cuerpoValido(col);
+    void _g;
+    expect((await POST(post("/api/reportes", sinGravedad))).status).toBe(400);
+    expect(await filasReportes(col)).toHaveLength(0);
+  });
+
+  it("un reenvío que entra en revisión (MODO_ATAQUE) manda a revisión el reporte que ya era visible", async () => {
+    await POST(post("/api/reportes", cuerpoValido(col, { gravedad: 1 }), mismo));
+    await envejecerReportes();
+    vi.stubEnv("MODO_ATAQUE", "1");
+    const res = await POST(post("/api/reportes", cuerpoValido(col, { gravedad: 4, comentario: "cambio" }), mismo));
+    expect(res.status).toBe(200);
+    const [f] = await filasReportes(col);
+    expect(f.gravedad).toBe(4);
+    expect(f.estado).toBe("revision");
+    expect(f.motivo).toBe("modo_ataque");
+  });
+
+  it("un reenvío normal NO saca un reporte de revisión", async () => {
+    await POST(post("/api/reportes", cuerpoValido(col, { gravedad: 1 }), mismo));
+    await db.query("UPDATE reportes SET estado = 'revision', motivo = 'limite_red_blando'");
+    await envejecerReportes();
+    expect((await POST(post("/api/reportes", cuerpoValido(col, { gravedad: 2 }), mismo))).status).toBe(200);
+    const [f] = await filasReportes(col);
+    expect(f.estado).toBe("revision");
+    expect(f.motivo).toBe("limite_red_blando");
+  });
+
   it("reportar con otra huella (otro dispositivo) en la misma colonia crea otro reporte", async () => {
     await POST(post("/api/reportes", cuerpoValido(col), mismo));
     const res = await POST(post("/api/reportes", cuerpoValido(col), { ip: "203.0.113.10" }));

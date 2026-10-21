@@ -144,7 +144,7 @@ Notas:
 - Se usa `pnpm exec tsx …` (y no `pnpm migrate`) porque los alias de `package.json` leen `web/.env.local`, que puede no existir; así `DATABASE_URL` se toma del entorno.
 - `data/colonias_zmg.geojson` contiene colonias del catálogo INE (corte dic-2020): **aproximadas y no oficiales**, sin las colonias posteriores a 2020. El sitio debe decirlo (ver [`data/raw/README.md`](../data/raw/README.md)).
 - Verifica: `SELECT count(*) FROM colonias;` debe dar 2,170 con el archivo incluido, y `SELECT nombre FROM schema_migrations ORDER BY 1;` debe listar todos los archivos de `db/migrations/`.
-- Las migraciones posteriores las aplica la CI en cada push a `main` (sección 1.6); esta corrida manual solo hace falta la primera vez.
+- Las migraciones posteriores las aplica la CI después de cada push a `main` con pruebas en verde (sección 1.6); esta corrida manual solo hace falta la primera vez.
 
 ### 1.3 Proyecto en Vercel
 
@@ -161,13 +161,13 @@ Agrega el dominio en Vercel y crea los registros DNS que indique. Después de qu
 
 ### 1.5 Operación inicial
 
-Sigue [OPERACION.md](OPERACION.md): monitores externos, respaldo nocturno cifrado (`pg_dump` con la cadena directa), simulacro de restauración y tarea diaria de retención (`scripts/purge.ts`).
+Sigue [OPERACION.md](OPERACION.md): monitores externos y simulacro de restauración. Los datos se conservan como registro de la comunidad (aviso de privacidad v0.2): la tarea de borrado (`scripts/purge.ts`) no se programa, y no hay copias propias además del historial de restauración de Neon.
 
 ### 1.6 Migraciones nuevas (CI)
 
 Vercel construye y publica la app, pero **no migra la base**. Si un cambio trae una migración nueva y nadie la aplica, el código nuevo corre contra el esquema viejo (pasó con `008_nivel_limpia.sql`: los reportes «Limpia» respondían 500).
 
-El workflow [`.github/workflows/migraciones.yml`](../.github/workflows/migraciones.yml) corre `scripts/migrate.ts` contra producción en cada push a `main` (y a mano desde la pestaña *Actions* con *Run workflow*). Solo aplica las migraciones que falten.
+El workflow [`.github/workflows/migraciones.yml`](../.github/workflows/migraciones.yml) corre `scripts/migrate.ts` contra producción cuando la CI de un push a `main` termina en verde (y a mano desde la pestaña *Actions* con *Run workflow*). Solo aplica las migraciones que falten. Si la CI falla, no migra.
 
 1. En Neon, abre el proyecto y ve a **Connect**. Desactiva *Connection pooling* y copia la cadena **directa** (sin `-pooler`). Añade `?sslmode=require` si no lo trae.
 2. En GitHub, en el repositorio: *Settings → Secrets and variables → Actions → New repository secret*. Nombre: `DATABASE_URL_PRODUCCION`; valor: esa cadena.
@@ -175,7 +175,7 @@ El workflow [`.github/workflows/migraciones.yml`](../.github/workflows/migracion
 
 Sin el secreto el job falla a propósito, con un aviso, para que no pase desapercibido.
 
-El workflow y el despliegue de Vercel arrancan con el mismo push y corren en paralelo. La migración suele terminar en menos de un minuto, antes que el build, pero no está garantizado. Por eso las migraciones deben ser compatibles con el código anterior (CONTRIBUTING.md): agregar columnas con valor por omisión o relajar restricciones, nunca quitar algo que el código desplegado todavía usa.
+Vercel no espera a la CI: el código nuevo suele publicarse unos minutos **antes** de que la migración llegue. Por eso cada migración debe ser compatible con el código anterior y con el nuevo (CONTRIBUTING.md): agregar columnas con valor por omisión o relajar restricciones, nunca quitar algo que el código desplegado todavía usa. Si el código nuevo **necesita** la migración (por ejemplo, `009_sin_agua.sql`: hasta que se aplica, los reportes «Hoy no llegó agua» fallan), sube primero la migración sola a `main`, espera a que el workflow termine en verde y después sube el código.
 
 ---
 
@@ -331,8 +331,7 @@ Y a mano, en un teléfono con datos móviles: abre el mapa, busca tu colonia, en
 - [ ] CDN con `HIT` verificado.
 - [ ] Monitores externos activos con alertas a dos personas.
 - [ ] Respaldo restaurado con éxito en una base de ensayo.
-- [ ] Tarea diaria de retención programada (servicio `retencion` de compose o cron) y comprobada con `--dry-run`; `/admin` no muestra «Retención vencida».
-- [ ] Respaldos (locales y externos) con caducidad de 14 días (OPERACION.md §3.3): `/privacidad` lo promete.
+- [ ] El apartado «Cuánto tiempo» de `/privacidad` coincide con lo que de verdad se conserva y se respalda (hoy: todo se conserva; sin tarea de borrado ni copias propias).
 - [ ] Topes de gasto y de autoescalado configurados.
-- [ ] Una semana en modo sombra de la agregación (calcular v1 y la media simple en paralelo) antes de depender del color para decisiones públicas, según `research/anti-abuso.md` §6.7.
+- [ ] Una semana en modo sombra de la agregación (calcular el método vigente y la media simple en paralelo) antes de depender del color para decisiones públicas, según `research/anti-abuso.md` §6.7.
 - [ ] Prueba de carga básica ejecutada (no se ejecutó ninguna al preparar esta guía).

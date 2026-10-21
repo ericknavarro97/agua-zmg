@@ -22,6 +22,11 @@ type MensajeUbicacion =
   | null;
 
 const REFRESCO_SCORES_MS = 120_000;
+/**
+ * Tras un reporte, cuándo volver a pedir los niveles. El servidor los recalcula como mucho cada 10 s y en segundo plano
+ * (MIN_REFRESCO_MS en lib/aggregation.ts): la primera petición dispara el recálculo y la segunda ya lo recibe.
+ */
+const ESPERAS_TRAS_REPORTE_MS = [15_000, 30_000];
 
 const sinSuscripcion = () => () => {};
 const suscribirConexion = (cb: () => void) => {
@@ -117,9 +122,21 @@ export default function AguaApp() {
 
   // Niveles por colonia: al cargar, cada 2 min con la pestaña visible, y a demanda
   const cargarScores = useCallback(() => setTickScores((t) => t + 1), []);
+  // Tras un reporte se vuelve a pedir pasados unos segundos, sin la caché del navegador ni la de la CDN.
+  const fresco = useRef(false);
+  const trasReportar = useCallback(() => {
+    for (const ms of ESPERAS_TRAS_REPORTE_MS) {
+      window.setTimeout(() => {
+        fresco.current = true;
+        setTickScores((t) => t + 1);
+      }, ms);
+    }
+  }, []);
   useEffect(() => {
     let vivo = true;
-    fetch("/api/colonias/scores")
+    const forzar = fresco.current;
+    fresco.current = false;
+    fetch(forzar ? `/api/colonias/scores?fresco=${Date.now()}` : "/api/colonias/scores", forzar ? { cache: "no-store" } : undefined)
       .then((res) => {
         if (!res.ok) throw new Error(String(res.status));
         return res.json() as Promise<Score[]>;
@@ -692,7 +709,7 @@ export default function AguaApp() {
             modoInicial={quiereReportar ? "reportar" : "ficha"}
             buscador={buscador}
             onCerrar={cerrar}
-            onReportado={cargarScores}
+            onReportado={trasReportar}
           />
         ) : (
           <>

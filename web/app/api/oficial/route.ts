@@ -21,7 +21,8 @@ export async function GET(req: Request) {
   if (tipo && !TIPOS.includes(tipo)) return err("tipo inválido");
   // Por defecto sin vínculos 'baja' (coincidencia dudosa de nombre); se piden de forma explícita con ?min_vinculo=baja
   const minVinculo = q.get("min_vinculo") ?? "media";
-  if (!(minVinculo in ORDEN_VINCULO)) return err("min_vinculo inválido");
+  // hasOwn y no `in`: `in` acepta claves heredadas («constructor», «toString») que luego rompen la consulta
+  if (!Object.hasOwn(ORDEN_VINCULO, minVinculo)) return err("min_vinculo inválido");
   const coloniaId = q.get("colonia_id");
   if (coloniaId && !/^\d{1,9}$/.test(coloniaId)) return err("colonia_id inválido");
   const municipioTxt = q.get("municipio");
@@ -30,7 +31,7 @@ export async function GET(req: Request) {
   const parametro = q.get("parametro");
   // Texto libre hacia SQL: sin NUL (Postgres lo rechaza con un error) y con largo acotado
   if (parametro && (parametro.includes("\0") || parametro.length > 100)) return err("parametro inválido");
-  const limit = Math.min(500, Math.max(1, Number(q.get("limit") ?? 200) || 200));
+  const limit = Math.min(500, Math.max(1, Math.floor(Number(q.get("limit") ?? 200)) || 200));
   // Entero seguro y con tope: 1e21, Infinity o más de 2^63 no caben en el bigint de OFFSET
   const offset = Math.min(1_000_000, Math.max(0, Math.floor(Number(q.get("offset") ?? 0)) || 0));
 

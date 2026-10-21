@@ -1,6 +1,7 @@
 // Importaciones relativas (no "@/…") para que vitest las resuelva sin configuración de alias.
 import { municipioCanonico, normalizarTexto } from "../../../../lib/oficial-normalizar";
 import { coincideEtag, etagDe, responderComprimido, type CuerpoComprimido } from "../../../../lib/oficial-http";
+import { METODO } from "../../../../lib/aggregation";
 
 // Utilidades compartidas de la API pública /api/v1: CORS, caché, licencia y una
 // memoria de corta vida para que un pico de tráfico (o ?x=1,2,3 para saltarse el CDN)
@@ -26,6 +27,9 @@ export const AVISO =
 export function metadatos(extra: Record<string, unknown> = {}) {
   return {
     version_api: "v1",
+    // Versión del método de cálculo: dentro de v1 cambió el rango de nivel (0-4) y el formato de `ultimo` (día);
+    // con esto un cliente puede detectar el método que produjo los datos (docs/API.md, «Cambios del contrato»)
+    metodo: METODO,
     generado: new Date().toISOString(),
     licencia: LICENCIA,
     atribucion: ATRIBUCION,

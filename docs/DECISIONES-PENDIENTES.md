@@ -2,7 +2,7 @@
 
 Estas decisiones **no son técnicas**: implican responsabilidad legal, dinero, reputación o criterio sobre salud pública. El equipo técnico (y los agentes que programaron el proyecto) no deben tomarlas por la comunidad. Cada una incluye una **recomendación** y su justificación para que decidir sea rápido, pero la recomendación no es una decisión tomada.
 
-Fecha de este documento: 2026-10-08. Las referencias `[§…]` apuntan a [`research/`](research/). Lo que no se pudo verificar está marcado **SIN VERIFICAR**.
+Fecha de este documento: 2026-10-08; actualizado el 2026-10-21 con las decisiones 3, 6 y 7. Las referencias `[§…]` apuntan a [`research/`](research/). Lo que no se pudo verificar está marcado **SIN VERIFICAR**.
 
 > **Lo que sí bloquea abrir al público:** 1 (responsable legal), 8 (aval de salud, o aviso visible de que no lo hay) y 9 (moderación y contacto). El resto se puede decidir después, pero cada día sin decidir 4 (licencias) significa datos publicados con una licencia solo "provisional".
 
@@ -10,11 +10,11 @@ Fecha de este documento: 2026-10-08. Las referencias `[§…]` apuntan a [`resea
 |---|---|---|
 | 1 | Quién es el responsable legal | **Sí** |
 | 2 | Nombre y dominio | Sí (necesitas uno para publicar) |
-| 3 | Dónde se aloja | Sí |
+| 3 | Dónde se aloja | Decidido en los hechos: Vercel + Neon (el sitio está publicado ahí) |
 | 4 | Licencias de código y de datos | No, pero la API declara una **provisional** |
 | 5 | Proveedor del mapa base | No (hay una opción por defecto) |
-| 6 | Qué se hace con el comentario libre | Decidido: se muestra en la colonia (con aviso en el formulario); falta revisión legal del aviso |
-| 7 | Cuánto tiempo se conservan los datos | No (hay un valor por defecto) |
+| 6 | Qué se hace con el comentario libre | Decidido (2026-10-21): se publica en la colonia en cuanto se envía, sin moderación previa (con aviso en el formulario); falta revisión legal del aviso |
+| 7 | Cuánto tiempo se conservan los datos | Decidido (2026-10-21): se conserva todo como registro de la comunidad |
 | 8 | Aval de un profesional de salud para la guía "Qué hacer" | **Sí**, o aviso visible |
 | 9 | Quién modera y el contacto público / apelación | **Sí** |
 | 10 | Alianzas con organizaciones y medios | No |
@@ -48,6 +48,8 @@ Fecha de este documento: 2026-10-08. Las referencias `[§…]` apuntan a [`resea
 **Antes de publicar:** actualizar `NEXT_PUBLIC_SITE_URL`, `ORIGENES_PERMITIDOS` y los textos legales.
 
 ## 3. Dónde se aloja
+
+**Estado (2026-10-21):** el sitio está publicado en Vercel con la base en Neon (opción A o C según el plan contratado). Lo de abajo queda como referencia.
 
 **Opciones:** (A) Vercel Pro + Neon Launch, ~USD 40/mes con 10 mil visitas y ~60-65 con 100 mil; (B) VPS con compose detrás de Cloudflare Free, ~5-30/mes; (C) piloto gratuito (Hobby + Neon Free), solo para validar con pocos vecinos. Cifras de `despliegue.md` §8, basadas en supuestos explícitos; revisar precios el día de contratar.
 
@@ -93,19 +95,21 @@ Fecha de este documento: 2026-10-08. Las referencias `[§…]` apuntan a [`resea
 
 ## 6. Qué se hace con el comentario libre
 
-**Estado:** el comentario (hasta 500 caracteres) se depura al recibirlo (teléfonos, correos, enlaces y @usuarios enmascarados) y **se muestra en la página de la colonia** (solo día y gravedad; solo los enviados después del aviso del formulario, `comentario_publico`); se borra a los 30 días con la tarea de retención.
+**Estado:** el comentario (hasta 500 caracteres) se depura al recibirlo (teléfonos, correos, enlaces y @usuarios enmascarados) y **se muestra en la página de la colonia** (solo día y gravedad; solo los enviados después del aviso del formulario, `comentario_publico`), en cuanto se envía y sin moderación previa. Un moderador puede retirarlo después desde `/admin`; la caché de la página de la colonia hace que tarde alrededor de un minuto en desaparecer. Se conserva con el resto de los datos (§7).
 
-**Decisión:** ¿se publicará algún día?
+**Decisión (2026-10-21):** publicación inmediata, sin moderación previa. La recomendación de abajo era la previa a esa decisión y queda como registro de los riesgos.
 
-**Recomendación:** **no publicarlo** en v1 (y evaluar eliminar el campo si no se usa para moderación). Si algún día se publica: moderación previa, botón de "reportar contenido" y términos claros.
+**Recomendación original:** **no publicarlo** en v1 (y evaluar eliminar el campo si no se usa para moderación). Si algún día se publica: moderación previa, botón de "reportar contenido" y términos claros.
 
 **Justificación:** es la mayor fuente de riesgo (datos personales, acusaciones contra terceros, difamación). Los reportes estructurados (gravedad 0-4 y síntomas de un catálogo) son suficientes para pintar el mapa. Hay una discrepancia entre fuentes sobre si la difamación sigue siendo delito penal en Jalisco: **sin resolver**, requiere revisión legal [`comunidad.md`].
 
 ## 7. Cuánto tiempo se conservan los datos
 
-**Estado:** `pnpm purge` anonimiza identificadores y borra comentarios a los 30 días por defecto (mínimo 14, la ventana de cálculo).
+**Estado:** `pnpm purge` existe (anonimiza identificadores y borra comentarios a los 30 días por defecto, mínimo 14), pero **no está programado**.
 
-**Recomendación:** mantener 30 días para comentarios e identificadores y publicar el plazo en el aviso de privacidad. No exportar nunca `huella` ni los demás identificadores.
+**Decisión (2026-10-21):** se conserva todo (reportes, comentarios e identificadores) como registro histórico de la comunidad. El aviso de privacidad v0.2 lo dice así. Si algún día se programa la purga, hay que cambiar antes el aviso.
+
+**Recomendación original:** mantener 30 días para comentarios e identificadores y publicar el plazo en el aviso de privacidad. No exportar nunca `huella` ni los demás identificadores.
 
 **Justificación:** menos retención, menos riesgo en caso de filtración. Aun así, la huella es un **seudónimo, no una disociación**: la frase "no guardamos datos personales" **no es defendible tal cual**; el aviso debe describir con precisión qué se guarda [`despliegue.md` §6.1]. Si un HMAC diario de IP+UA es dato personal bajo la ley: **SIN VERIFICAR**, consultar abogado.
 

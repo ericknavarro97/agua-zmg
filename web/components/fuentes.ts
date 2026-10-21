@@ -42,6 +42,15 @@ export const F = {
   aztecaDecreto: "https://www.aztecajalisco.com/local/publican-decreto-descuento-del-siapa-por-mala-calidad-del-agua/",
   adn40Muestras:
     "https://www.adn40.mx/mexico/2026-03-12/autoridades-de-jalisco-alertan-no-beber-agua-la-llave-en-zonas-guadalajara-analisis-270-muestras-de-plantas-potabilizadoras",
+  imparcialUsos:
+    "https://www.elimparcial.com/mexico/2026/07/08/habitantes-del-area-metropolitana-de-guadalajara-deben-usar-agua-de-garrafon-o-purificada-para-beber-cocinar-y-cepillarse-los-dientes-mientras-continuan-los-reportes-ciudadanos-por-agua-de-la-red-con-coloracion-oscura-turbiedad-y-malos-olores/",
+  telediarioCedhj: "https://www.telediario.mx/comunidad/como-poner-una-queja-en-la-cedhj-requisitos-y-proceso",
+  unotvTandeo:
+    "https://www.unotv.com/estados/jalisco/siapa-aplicara-tandeos-de-agua-en-627-colonias-de-guadalajara-desde-el-15-de-octubre-hasta-marzo-de-2027/",
+  cronicaRotacion:
+    "https://www.cronica.com.mx/jalisco/guadalajara/2026/10/19/siapa-habilita-plataforma-para-consultar-la-rotacion-del-agua/",
+  // Oficial (consulta de la rotación del servicio del SIAPA por domicilio)
+  siapaRotacion: "https://rotaciondeserviciosiapa.jalisco.gob.mx",
 } as const;
 
 // Nombre descriptivo de cada fuente: lo leen los lectores de pantalla en los enlaces "[fuente]" (WCAG 2.4.4)
@@ -81,6 +90,11 @@ const NOMBRES: Record<keyof typeof F, string> = {
   informadorDescuento: "El Informador, colonias con descuento por agua turbia",
   aztecaDecreto: "Azteca Jalisco, decreto de descuento del SIAPA",
   adn40Muestras: "ADN 40, análisis de muestras de plantas potabilizadoras",
+  imparcialUsos: "El Imparcial, para qué se puede usar el agua de la llave",
+  telediarioCedhj: "Telediario, cómo poner una queja en la CEDHJ",
+  unotvTandeo: "UnoTV, tandeos del SIAPA en 627 colonias",
+  cronicaRotacion: "Crónica, plataforma para consultar la rotación del agua",
+  siapaRotacion: "SIAPA, consulta de la rotación del servicio",
 };
 
 /** Nombre descriptivo de una fuente a partir de su URL (undefined si no es una fuente conocida) */

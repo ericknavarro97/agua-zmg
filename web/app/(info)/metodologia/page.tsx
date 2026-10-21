@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     "Cómo se calcula el nivel de cada colonia, qué significan los niveles de confianza, qué evita que unos pocos dominen el mapa y qué límites tiene. No es dato oficial ni consejo médico.",
 };
 
-// Los números de esta página salen de web/lib/aggregation.ts (PARAMS, método "v3"). Si cambias un parámetro allí,
+// Los números de esta página salen de web/lib/aggregation.ts (PARAMS y METODO). Si cambias un parámetro allí,
 // sube METODO y actualiza esta tabla: la página debe decir lo mismo que hace el código.
 
 const INDICE = [
@@ -35,7 +35,7 @@ export default function Metodologia() {
       etiqueta={`Metodología · Método ${METODO}`}
       indice={INDICE}
       titulo="Metodología: cómo se calcula el mapa"
-      resumen="Publicamos las reglas y los números para que cualquiera pueda revisarlos. Método vigente: «v3» (se puede reportar agua limpia y un reporte se pinta con el nivel que dice, sin moverlo hacia un valor de partida)."
+      resumen={`Publicamos las reglas y los números para que cualquiera pueda revisarlos. Método vigente: «${METODO}» (se puede reportar agua limpia o que no llegó agua, y un reporte se pinta con el nivel que dice).`}
     >
 
       <h2 id="que-es">Qué es y qué NO es</h2>
@@ -82,13 +82,14 @@ export default function Metodologia() {
       <p>
         <strong>Ningún nivel significa que el agua sea segura para beber o cocinar, ni siquiera «Limpia».</strong> Que el
         agua se vea clara y no huela raro no descarta bacterias ni químicos que no se ven. La escala describe cómo se ve y
-        huele el agua, no si hay agua: el desabasto se reporta aparte, con la nota «Sin agua / baja presión», y no cambia el
-        nivel. Mira <Link href="/que-hacer">qué hacer</Link>.
+        huele el agua, no si hay agua: el desabasto se reporta aparte, con la opción «Hoy no llegó agua». Esos reportes se
+        cuentan por separado en el panel de la colonia y no cambian el nivel. Mira <Link href="/que-hacer">qué hacer</Link>.
       </p>
 
       <h2 id="calculo">Cómo se calcula el nivel de una colonia</h2>
       <p>
-        Solo cuentan los reportes de los últimos <strong>14 días</strong> que no estén ocultos ni marcados como sospechosos.
+        Solo cuentan los reportes de los últimos <strong>14 días</strong> que tengan nivel (los de «Hoy no llegó agua» van
+        aparte) y que no estén ocultos ni marcados como sospechosos.
         El cálculo sigue estos pasos (el código es público: <code>web/lib/aggregation.ts</code>):
       </p>
       <ol>
@@ -96,7 +97,7 @@ export default function Metodologia() {
           <strong>Peso de cada reporte.</strong> Cada reporte vale 1, pero una misma red (por ejemplo, una misma casa o
           una misma oficina) no puede pesar más de 2 reportes por día ni más de 3 por semana en una colonia. Si una red
           manda 6 o más reportes el mismo día a una colonia, pesan una cuarta parte. Un formulario enviado en menos de 5
-          segundos pesa la mitad.
+          segundos pesa la mitad, igual que un envío que no declara cuánto tardó (el formulario siempre lo declara).
         </li>
         <li>
           <strong>Los recientes pesan más.</strong> Cada reporte pierde la mitad de su peso cada 7 días. Esto vale para el
@@ -106,8 +107,9 @@ export default function Metodologia() {
         <li>
           <strong>Promedio recortado.</strong> Se descarta el 20 % del peso en cada extremo (los reportes más bajos y los más
           altos) y se promedia el resto en la escala de 0 (limpia) a 4 (crítica). Así, unos pocos reportes extremos no
-          mueven el color. Si en una colonia unos vecinos dicen «limpia» y otros «grave», el promedio queda en medio y la
-          confianza no pasa de media: es una señal de que la situación es desigual dentro de la colonia.
+          mueven el color. Si en una colonia unos vecinos dicen «limpia» y otros «grave», el promedio queda en medio; cuando
+          además el promedio y la mediana se separan más de 0.75 niveles, la confianza no pasa de media: es una señal de que
+          la situación es desigual dentro de la colonia.
         </li>
         <li>
           <strong>Mínimo para publicar.</strong> Basta un reporte (o el equivalente: un formulario enviado en menos de 5
@@ -146,8 +148,9 @@ export default function Metodologia() {
           <tr>
             <td><strong>Baja</strong></td>
             <td>
-              Poca evidencia (menos de 5), o menos de 2 días con evidencia suficiente, o más del 60 % de la evidencia llegó en
-              un solo día. Puede ser real, pero aún no se corrobora.
+              Poca evidencia (menos de 5, contando que los reportes viejos pesan menos), o menos de 2 días con evidencia
+              suficiente (un día cuenta si aporta al menos 1.5), o más del 60 % de la evidencia llegó en un solo día. Puede ser
+              real, pero aún no se corrobora.
             </td>
             <td>Color tenue. No se cuenta como «colonia afectada» en el resumen.</td>
           </tr>
@@ -264,8 +267,9 @@ export default function Metodologia() {
         </li>
         <li>
           El comentario libre se depura (teléfonos, correos y enlaces se enmascaran) y <strong>se muestra en la página de la
-          colonia</strong>, solo con el día y la gravedad, sin hora ni identificadores. El formulario lo avisa antes de enviar;
-          los comentarios anteriores a ese aviso nunca se publican. Un moderador puede retirar un comentario.
+          colonia</strong> en cuanto se envía, sin revisión previa, solo con el día y la gravedad, sin hora ni identificadores.
+          El formulario lo avisa antes de enviar; los comentarios anteriores a ese aviso nunca se publican. Un moderador puede
+          retirar un comentario; puede tardar alrededor de un minuto en desaparecer de la página.
         </li>
         <li>
           Canal para impugnar un reporte o el nivel de una colonia:{" "}
@@ -281,6 +285,11 @@ export default function Metodologia() {
 
       <h2 id="cambios">Cambios del método</h2>
       <ul>
+        <li>
+          <strong>v4 (21 oct 2026).</strong> Nueva opción «Hoy no llegó agua»: esos reportes se cuentan aparte y no cambian
+          el nivel (antes había que elegir un nivel aunque no llegara agua). Un envío que no declara cuánto tardó el
+          formulario pesa la mitad, como uno enviado en menos de 5 segundos.
+        </li>
         <li>
           <strong>v3 (17 oct 2026).</strong> Nuevo nivel 0, «Limpia», para reportar que el agua llega bien. El color ya no
           se acerca a un valor de partida: en v2 un solo reporte «leve» se pintaba «moderada». La evidencia de los

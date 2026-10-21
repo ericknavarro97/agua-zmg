@@ -15,6 +15,12 @@ export function celda(v: unknown): string {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+/**
+ * BOM UTF-8 al inicio: sin él, Excel en español abre el archivo como ANSI y rompe los acentos («Tonalá»). Los lectores
+ * de CSV comunes (pandas, R, csvkit, Sheets) lo ignoran.
+ */
+export const BOM = "\uFEFF";
+
 export function aCsv(filas: FilaResumen[], corte: string, licencia: string = LICENCIA.nombre): string {
   const lineas = [COLUMNAS.join(",")];
   for (const f of filas) {
@@ -24,5 +30,5 @@ export function aCsv(filas: FilaResumen[], corte: string, licencia: string = LIC
         .join(","),
     );
   }
-  return lineas.join("\r\n") + "\r\n";
+  return BOM + lineas.join("\r\n") + "\r\n";
 }

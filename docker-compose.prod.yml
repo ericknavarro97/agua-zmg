@@ -42,10 +42,12 @@ services:
         condition: service_healthy
     restart: "no"
 
-  # Retención de datos: cada 24 h anonimiza identificadores y borra comentarios de más de 30 días
-  # (lo que promete /privacidad). Reutiliza la imagen del job de migraciones, que trae scripts/purge.ts.
-  # Si falla una corrida, escribe el error en el log y reintenta a la siguiente; el panel /admin avisa si hay retención vencida.
+  # Retención de datos (APAGADA por defecto): cada 24 h anonimizaría identificadores y borraría comentarios de más de
+  # 30 días. Desde el 21-oct-2026 el proyecto conserva todo como registro de la comunidad (aviso de privacidad v0.2),
+  # así que solo arranca con `--profile retencion`. Si la activas, cambia antes el apartado «Cuánto tiempo» de /privacidad.
+  # Reutiliza la imagen del job de migraciones, que trae scripts/purge.ts.
   retencion:
+    profiles: ["retencion"]
     build:
       context: .
       dockerfile: web/Dockerfile
@@ -91,7 +93,6 @@ services:
       TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
       # Sin valor = se pasa tal cual desde .env.prod solo si está definida (si no, la app usa su valor por defecto)
       CSP_MAPA_ORIGENES:
-      CSP_EMBED_ANCESTORS:
       LIMITE_GLOBAL_HORA: ${LIMITE_GLOBAL_HORA:-3000}
       MODO_ATAQUE: ${MODO_ATAQUE:-0}
       DATOS_LICENCIA_NOMBRE: ${DATOS_LICENCIA_NOMBRE:-}

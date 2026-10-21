@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { pool } from "@/lib/db";
-import { SINTOMAS } from "@/lib/severity";
+import { SINTOMAS, SINTOMA_SIN_AGUA } from "@/lib/severity";
 import {
   diaLocal,
   hashComentario,
@@ -27,7 +27,8 @@ const TIEMPO_MIN_MS = 2000;
 const Body = z.object({
   // tope = máximo de integer en Postgres (más allá, la consulta falla con 500)
   colonia_id: z.number().int().positive().max(2147483647),
-  gravedad: z.number().int().min(0).max(4),
+  // null = «Hoy no llegó agua»: registra el desabasto y no entra en el nivel (debe venir explícito, no ausente)
+  gravedad: z.number().int().min(0).max(4).nullable(),
   sintomas: z.array(z.enum(SINTOMAS)).max(SINTOMAS.length).default([]),
   comentario: z.string().trim().max(500).optional(),
   // honeypot: campo oculto que un humano nunca llena (DEBE venir vacío)
@@ -43,7 +44,7 @@ const REENVIO_MIN_S = 30;
 
 type Nuevo = {
   coloniaId: number;
-  gravedad: number;
+  gravedad: number | null;
   sintomas: string[];
   comentario: string | null;
   comentarioHash: string | null;
@@ -74,8 +75,9 @@ async function guardar(r: Nuevo): Promise<"creado" | "actualizado" | "muy_pronto
       await c.query("ROLLBACK");
       return "limite";
     }
-    // Si ya reportó esa colonia hoy se actualiza en vez de duplicar. Reenviar NO revive un reporte oculto,
-    // no cambia el estado de revisión y no se puede martillar (mínimo 30 s desde la última actualización).
+    // Si ya reportó esa colonia hoy se actualiza en vez de duplicar. Reenviar NO revive un reporte oculto, no saca
+    // uno de revisión y no se puede martillar (mínimo 30 s desde la última actualización). Sí puede MANDARLO a
+    // revisión: si este envío entra en revisión (modo ataque, límite blando, ráfaga), el reporte ya visible también.
     const res = await c.query<{ insertado: boolean }>(
       `INSERT INTO reportes AS x (colonia_id, gravedad, sintomas, comentario, comentario_hash, huella, dia,
                                   red_hash, red_sem, ua_familia, tiempo_ms, canal, estado, sospechoso, motivo, comentario_publico)
@@ -84,7 +86,10 @@ async function guardar(r: Nuevo): Promise<"creado" | "actualizado" | "muy_pronto
          SET gravedad = EXCLUDED.gravedad, sintomas = EXCLUDED.sintomas, comentario = EXCLUDED.comentario,
              comentario_hash = EXCLUDED.comentario_hash, comentario_publico = EXCLUDED.comentario_publico, tiempo_ms = EXCLUDED.tiempo_ms,
              sospechoso = EXCLUDED.sospechoso, actualizado_en = now(),
-             motivo = CASE WHEN x.estado = 'visible' THEN (CASE WHEN EXCLUDED.sospechoso THEN EXCLUDED.motivo END) ELSE x.motivo END
+             estado = CASE WHEN x.estado = 'visible' AND EXCLUDED.estado = 'revision' THEN 'revision' ELSE x.estado END,
+             motivo = CASE WHEN x.estado = 'visible'
+                           THEN (CASE WHEN EXCLUDED.sospechoso OR EXCLUDED.estado = 'revision' THEN EXCLUDED.motivo END)
+                           ELSE x.motivo END
        WHERE x.estado <> 'oculto' AND now() - COALESCE(x.actualizado_en, x.creado_en) > interval '${REENVIO_MIN_S} seconds'
        RETURNING (xmax = 0) AS insertado`,
       [
@@ -151,7 +156,8 @@ export async function POST(request: Request) {
   }
 
   // 4) señales de bot declaradas por el cliente: el reporte se guarda marcado y NO cuenta,
-  //    pero la respuesta es la misma que la de uno normal (no se le da pista al bot)
+  //    pero la respuesta es la misma que la de uno normal (no se le da pista al bot).
+  //    Sin tiempo_ms no se marca aquí (no hay con qué), pero en el cálculo pesa como envío rápido (lib/aggregation.ts).
   const hpLleno = b.hp !== undefined && b.hp !== null && b.hp !== "" && b.hp !== false;
   const motivoSospecha = hpLleno ? "honeypot" : b.tiempo_ms !== undefined && b.tiempo_ms < TIEMPO_MIN_MS ? "tiempo_bajo" : null;
 
@@ -194,10 +200,12 @@ export async function POST(request: Request) {
   const com = b.comentario ? limpiarComentario(b.comentario).texto : null;
 
   // 7) guardar (cupo de colonias/día bajo candado)
+  // «Hoy no llegó agua» lleva siempre su síntoma: así el desabasto se cuenta igual venga de donde venga
+  const sintomas = b.gravedad === null && !b.sintomas.includes(SINTOMA_SIN_AGUA) ? [...b.sintomas, SINTOMA_SIN_AGUA] : b.sintomas;
   const res = await guardar({
     coloniaId: b.colonia_id,
     gravedad: b.gravedad,
-    sintomas: b.sintomas,
+    sintomas,
     comentario: com,
     comentarioHash: com ? hashComentario(com, dia) : null,
     huella: id.huella,

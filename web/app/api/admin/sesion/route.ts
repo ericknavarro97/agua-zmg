@@ -29,11 +29,11 @@ export async function POST(request: Request) {
   }
   const p = Body.safeParse(json);
   if (!p.success) return Response.json({ error: "Datos inválidos" }, { status: 400, headers: sinCache });
+  // Red bloqueada: ni el token correcto entra hasta que pase la ventana (ver auth.ts)
+  if (await bloqueado(h)) {
+    return Response.json({ error: "Demasiados intentos. Intenta más tarde." }, { status: 429, headers: sinCache });
+  }
   if (!tokenCorrecto(p.data.token)) {
-    // El token correcto siempre entra; el bloqueo por red solo frena a quien falla (ver auth.ts)
-    if (await bloqueado(h)) {
-      return Response.json({ error: "Demasiados intentos. Intenta más tarde." }, { status: 429, headers: sinCache });
-    }
     await registrarFallo(h);
     return Response.json({ error: "No autorizado" }, { status: 401, headers: sinCache });
   }

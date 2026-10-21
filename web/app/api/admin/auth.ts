@@ -3,6 +3,7 @@
  * no hay token por defecto. Dos vías: `Authorization: Bearer <ADMIN_TOKEN>` (curl/scripts) o la cookie de
  * sesión firmada que entrega POST /api/admin/sesion (HttpOnly, SameSite=Strict, 8 h).
  * Los intentos fallidos se limitan por red (tabla rate_limits) y todas las comparaciones son en tiempo constante.
+ * Una red bloqueada no puede probar tokens (ni el correcto) hasta que pase la ventana; una sesión ya abierta sigue.
  */
 import { createHash, createHmac } from "node:crypto";
 import { pool } from "@/lib/db";
@@ -76,18 +77,17 @@ const err = (status: number, error: string) => ({
 
 /**
  * Verifica la petición del admin. Con cookie exige además mismo origen (anti-CSRF) en métodos que cambian estado.
- * La credencial correcta SIEMPRE pasa: el bloqueo por red solo frena a quien falla, y solo cuentan como fallo los
- * intentos con credencial presente e incorrecta. Si no, cualquiera de la misma /24 (o detrás de la misma
- * IP compartida) dejaría sin panel al moderador con peticiones anónimas. La fuerza bruta se frena porque
- * el token es largo (>= 16, ver README) y porque los fallos acumulados devuelven 429 sin más pistas.
+ * Bloqueo por red: tras los fallos permitidos, esa red recibe 429 con CUALQUIER token, también el correcto (si el
+ * correcto pasara, el bloqueo no frenaría la fuerza bruta: 429 al fallar y 200 al acertar es una pista). Lo que
+ * no se bloquea es una sesión ya abierta (cookie válida): así, quien comparte la red con un atacante no le quita
+ * el panel al moderador que ya entró. Solo cuentan como fallo los intentos con credencial presente e incorrecta;
+ * las peticiones anónimas no gastan el cupo de la red.
  */
 export async function autenticar(request: Request): Promise<Auth> {
   if (!adminHabilitado()) return err(404, "No encontrado"); // deshabilitado: no se anuncia
   const h = request.headers;
 
   const bearer = /^Bearer\s+(.+)$/i.exec(h.get("authorization") ?? "")?.[1];
-  if (bearer && tokenCorrecto(bearer)) return { ok: true, via: "bearer" };
-
   const cookie = cookieDe(h);
   if (!bearer && sesionValida(cookie)) {
     if (request.method !== "GET" && request.method !== "HEAD" && origenPermitido(h) !== "web") {
@@ -96,9 +96,12 @@ export async function autenticar(request: Request): Promise<Auth> {
     return { ok: true, via: "cookie" };
   }
 
-  // Sin credenciales (petición anónima): 401 sin contar. Con credencial incorrecta: cuenta y puede bloquear.
+  // Sin credenciales (petición anónima): 401 sin contar.
   if (!bearer && !cookie) return err(401, "No autorizado");
+  // Red bloqueada: 429 antes de mirar el token, sea correcto o no
   if (await bloqueado(h)) return err(429, "Demasiados intentos. Intenta más tarde.");
+  if (bearer && tokenCorrecto(bearer)) return { ok: true, via: "bearer" };
+  // Credencial incorrecta (token o cookie vencida o alterada): cuenta y puede bloquear
   await registrarFallo(h);
   return err(401, "No autorizado");
 }

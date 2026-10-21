@@ -50,7 +50,9 @@ function versionDatos(): Promise<string> {
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const detalleKey = (url.searchParams.get("detalle") ?? "medio") as keyof typeof DETALLE;
-  if (!(detalleKey in DETALLE)) {
+  // hasOwn y no `in`: `in` acepta claves heredadas («constructor», «toString»), que dejarían tolerancia y decimales
+  // indefinidos y una respuesta sin polígonos cacheada un día
+  if (!Object.hasOwn(DETALLE, detalleKey)) {
     return Response.json({ error: `detalle inválido; usa ${Object.keys(DETALLE).join("|")}` }, { status: 400 });
   }
   let municipios: string[] | null = null;

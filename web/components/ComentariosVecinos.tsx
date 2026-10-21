@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { etiquetaNivel, fechaCorta, Muestra } from "./niveles";
+import { ETIQUETA_SIN_AGUA, etiquetaNivel, fechaCorta, Muestra, MuestraSinAgua } from "./niveles";
 import type { ComentarioPublico } from "./tipos";
 
 const VISIBLES = 3;
@@ -19,8 +19,9 @@ export default function ComentariosVecinos({ comentarios }: { comentarios: Comen
         {mostrados.map((c, i) => (
           <li key={`${c.dia}-${i}`} className="rounded-xl bg-white p-3 text-sm shadow-sm ring-1 ring-borde">
             <p className="flex flex-wrap items-center gap-2 text-xs text-texto-tenue">
-              <Muestra nivel={c.gravedad} />
-              <span className="font-medium text-tinta">{etiquetaNivel(c.gravedad)}</span>
+              {/* gravedad null = «Hoy no llegó agua», no «sin datos» */}
+              {c.gravedad != null ? <Muestra nivel={c.gravedad} /> : <MuestraSinAgua />}
+              <span className="font-medium text-tinta">{c.gravedad != null ? etiquetaNivel(c.gravedad) : ETIQUETA_SIN_AGUA}</span>
               <span>· {fechaCorta(c.dia)}</span>
             </p>
             <p className="mt-1 whitespace-pre-line break-words text-tinta">{c.texto}</p>

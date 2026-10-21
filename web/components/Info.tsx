@@ -59,7 +59,7 @@ export function AvisoSalud() {
         Esta guía es informativa y <strong>no sustituye el consejo, diagnóstico ni tratamiento de un profesional de la
         salud</strong>. Si tú o alguien de tu familia tiene síntomas, acude a una unidad de salud o llama al{" "}
         <a href="tel:911">9-1-1</a> en caso de emergencia. La información viene de fuentes públicas citadas en cada punto y
-        se verificó el 8 de octubre de 2026; puede cambiar. Los teléfonos y datos de contacto deben confirmarse en el sitio
+        se verificó el 21 de octubre de 2026; puede cambiar. Los teléfonos y datos de contacto deben confirmarse en el sitio
         oficial de cada institución. Agua ZMG no es una autoridad ni un laboratorio: los reportes ciudadanos que ves en el
         mapa no son mediciones oficiales ni sustituyen un análisis de laboratorio.
       </p>

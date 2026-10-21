@@ -30,12 +30,12 @@ function g(col: number, gravedad: Gravedad, edadDias = 0.2, o: Partial<Grupo> = 
   const red = o.red ?? `r${contador++}`;
   return { coloniaId: col, dia: dia(edadDias), red, redSem: o.redSem ?? red, gravedad, n: 1, nRapidos: 0, edadDias, ...o };
 }
-const ULTIMO = Date.UTC(2026, 9, 8);
+const ULTIMO = "2026-10-08";
 /** Resumen: cada fila es una huella distinta salvo que se pase `huellas`. */
 function resumen(gs: Grupo[], huellas?: Map<number, number>): Map<number, ResumenColonia> {
   const m = new Map<number, ResumenColonia>();
   for (const x of gs) {
-    const r = m.get(x.coloniaId) ?? { n: 0, nHuellas: 0, ultimoMs: ULTIMO };
+    const r = m.get(x.coloniaId) ?? { n: 0, nHuellas: 0, ultimoDia: ULTIMO };
     r.n += x.n;
     r.nHuellas += x.n;
     m.set(x.coloniaId, r);
@@ -404,7 +404,8 @@ describe("paraContrato", () => {
     expect(c.score).toBe(Number(x.score.toFixed(3)));
     expect(Number.isInteger(c.nivel)).toBe(true);
     expect(Number.isInteger(c.n_huellas)).toBe(true);
-    expect(new Date(c.ultimo).toISOString()).toBe(c.ultimo);
+    // solo el día (hora de Guadalajara), nunca la hora: con un reporte, la hora lo delataría
+    expect(c.ultimo).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(JSON.stringify(c)).not.toMatch(/nEff|recortada|mediana|red/);
   });
 });

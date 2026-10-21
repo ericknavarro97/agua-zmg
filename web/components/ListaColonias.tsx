@@ -42,8 +42,9 @@ export default function ListaColonias({
       .filter((f) => (q.length < 2 ? true : normalizar(f.properties.nombre).includes(q)))
       .filter((f) => (soloConNivel ? !!scores[f.properties.id] : true))
       .sort((a, b) => {
-        const sa = scores[a.properties.id]?.score ?? 0;
-        const sb = scores[b.properties.id]?.score ?? 0;
+        // Sin datos va al final (-1): «Limpia» tiene score 0 y debe quedar entre las colonias con nivel
+        const sa = scores[a.properties.id]?.score ?? -1;
+        const sb = scores[b.properties.id]?.score ?? -1;
         if (sa !== sb) return sb - sa;
         return a.properties.nombre.localeCompare(b.properties.nombre, "es");
       });

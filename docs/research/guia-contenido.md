@@ -431,3 +431,15 @@ Medios (reportan declaraciones oficiales o hallazgos):
 - CEDHJ quejas: https://www.telediario.mx/comunidad/como-poner-una-queja-en-la-cedhj-requisitos-y-proceso
 - Descuento: https://www.aztecajalisco.com/local/publican-decreto-descuento-del-siapa-por-mala-calidad-del-agua/ ; https://www.nmas.com.mx/jalisco/sociedad/que-se-requerira-para-obtener-descuento-en-agua-en-la-zona-metropolitana-de-guadalajara/ ; https://www.informador.mx/jalisco/siapa-amplia-a-342-las-colonias-con-descuento-por-servicio-de-agua-turbia-20260930-0216.html
 - Portal de transparencia (COPRISJAL): https://transparencia.info.jalisco.gob.mx/node/4525
+
+## Re-verificación del 21 de octubre de 2026
+
+Se volvió a abrir cada fuente citada en `/que-hacer`, `/denunciar` y el aviso de salud. Lo que cambió en las páginas:
+
+- **Tandeo (que-hacer, «Guardar agua»).** Ya no es un anuncio: desde el 15 de octubre de 2026 y hasta marzo de 2027 el SIAPA aplica una «rotación del servicio» en 627 colonias, con baja presión dos o tres días por semana por sector y cortes de hasta 24 horas por día programado. Consulta por domicilio en https://rotaciondeserviciosiapa.jalisco.gob.mx [fuente: https://www.unotv.com/estados/jalisco/siapa-aplicara-tandeos-de-agua-en-627-colonias-de-guadalajara-desde-el-15-de-octubre-hasta-marzo-de-2027/] [fuente: https://www.cronica.com.mx/jalisco/guadalajara/2026/10/19/siapa-habilita-plataforma-para-consultar-la-rotacion-del-agua/]
+- **Usos del agua de la llave (que-hacer).** La página citaba a N+, pero esa nota no lo dice; se cambió a El Imparcial, que sí lo dice textualmente: https://www.elimparcial.com/mexico/2026/07/08/habitantes-del-area-metropolitana-de-guadalajara-deben-usar-agua-de-garrafon-o-purificada-para-beber-cocinar-y-cepillarse-los-dientes-mientras-continuan-los-reportes-ciudadanos-por-agua-de-la-red-con-coloracion-oscura-turbiedad-y-malos-olores/
+- **151 quejas de la CEDHJ (denunciar).** Se sostiene, pero la página no enlazaba su fuente; ahora enlaza a Telediario (4 ago 2026).
+- **9-1-1 (denunciar).** La fuente oficial no dice «gratis, las 24 horas»; se quitó esa parte.
+- **Plomo en sangre (que-hacer).** La CDC dice que la prueba es «la mejor forma», no «la única»; se corrigió.
+
+Se sostienen sin cambios: SIAPATEL, CEDHJ (teléfonos y requisitos), COFEPRIS, el descuento del 80 % hasta el 15 de diciembre de 2026 en 342 colonias, la ausencia de alerta sanitaria declarada, y las indicaciones de Salud federal, CDC, EPA y OMS. Detalles menores de cita sin corregir (la fuente respalda el sentido pero no la frase exacta): «1 micra» (está en la página general de la CDC, no en la de Giardia), «sin aditivos» en el cloro, «déjala enfriar», y que la hoja de plomo de la OMS no habla de diarrea.

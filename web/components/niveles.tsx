@@ -23,6 +23,13 @@ export function Muestra({ nivel, grande = false, enorme = false }: { nivel: numb
   return <span aria-hidden="true" className={`sw sw-${nivel ?? "sd"} ${enorme ? "sw-xl" : grande ? "sw-lg" : ""}`} />;
 }
 
+/** Reporte «Hoy no llegó agua» (gravedad null en un reporte): no es un nivel ni «sin datos». */
+export const ETIQUETA_SIN_AGUA = "No llegó agua";
+
+export function MuestraSinAgua({ grande = false }: { grande?: boolean }) {
+  return <span aria-hidden="true" className={`sw sw-sa ${grande ? "sw-lg" : ""}`} />;
+}
+
 /** Nivel con muestra y etiqueta escrita */
 export function ChipNivel({ nivel, extra }: { nivel: number | null; extra?: string }) {
   return (
@@ -40,9 +47,9 @@ export function ChipNivel({ nivel, extra }: { nivel: number | null; extra?: stri
 export const CONFIANZA: Record<Confianza, { etiqueta: string; corta: string; explicacion: string }> = {
   baja: {
     etiqueta: "Confianza baja",
-    corta: "pocos reportes o de pocas personas. Tómalo como un indicio, no como un hecho.",
+    corta: "pocos reportes, de pocas personas o de hace varios días. Tómalo como un indicio, no como un hecho.",
     explicacion:
-      "Hay pocos reportes, o llegaron todos muy juntos o de pocas personas distintas. Tómalo como un indicio, no como un hecho. El color se ve tenue en el mapa y estas colonias no se cuentan como «afectadas» en el resumen.",
+      "Hay pocos reportes, o son de hace varios días, o llegaron todos muy juntos o de pocas personas distintas. Tómalo como un indicio, no como un hecho. El color se ve tenue en el mapa y estas colonias no se cuentan como «afectadas» en el resumen.",
   },
   media: {
     etiqueta: "Confianza media",
@@ -89,25 +96,31 @@ export function fechaCorta(iso: string | null | undefined): string {
   return d.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
 }
 
-/** Hace cuánto, en palabras */
-export function haceCuanto(iso: string | null | undefined): string {
-  if (!iso) return "sin reportes recientes";
-  const ms = Date.now() - new Date(iso).getTime();
-  if (Number.isNaN(ms)) return "";
-  const horas = Math.round(ms / 3_600_000);
-  if (horas < 1) return "hace menos de una hora";
-  if (horas < 24) return `hace ${horas} h`;
-  const dias = Math.round(horas / 24);
-  return dias === 1 ? "hace 1 día" : `hace ${dias} días`;
+/** Hoy en Guadalajara (YYYY-MM-DD), el mismo día local que usa el servidor */
+function hoyGdl(ahora = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(ahora);
 }
 
-/** Hace cuánto, abreviado para las cifras del dock («<1 h», «5 h», «3 d») */
-export function haceCuantoCorto(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const ms = Date.now() - new Date(iso).getTime();
-  if (Number.isNaN(ms)) return null;
-  const horas = Math.round(ms / 3_600_000);
-  if (horas < 1) return "<1 h";
-  if (horas < 24) return `${horas} h`;
-  return `${Math.round(horas / 24)} d`;
+/** Días completos entre un día YYYY-MM-DD y hoy en Guadalajara (null si la fecha no es válida) */
+export function diasDesde(dia: string, ahora = new Date()): number | null {
+  const a = Date.parse(`${dia.slice(0, 10)}T00:00:00Z`);
+  const b = Date.parse(`${hoyGdl(ahora)}T00:00:00Z`);
+  if (Number.isNaN(a) || Number.isNaN(b)) return null;
+  return Math.max(0, Math.round((b - a) / 86_400_000));
+}
+
+/** Hace cuánto, en palabras. La API publica solo el día del último reporte (nunca la hora). */
+export function haceCuanto(dia: string | null | undefined, ahora = new Date()): string {
+  if (!dia) return "sin reportes recientes";
+  const d = diasDesde(dia, ahora);
+  if (d == null) return "";
+  return d === 0 ? "hoy" : d === 1 ? "ayer" : `hace ${d} días`;
+}
+
+/** Hace cuánto, abreviado para las cifras del dock («hoy», «ayer», «3 d») */
+export function haceCuantoCorto(dia: string | null | undefined, ahora = new Date()): string | null {
+  if (!dia) return null;
+  const d = diasDesde(dia, ahora);
+  if (d == null) return null;
+  return d === 0 ? "hoy" : d === 1 ? "ayer" : `${d} d`;
 }

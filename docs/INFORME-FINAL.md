@@ -1,6 +1,6 @@
 # Informe final de verificación: Agua ZMG
 
-> **Nota posterior (2026-10-09).** Este informe es histórico y se conserva tal como se escribió. Después se retiró todo lo «demo» del producto (datos, columna, fuente, `seed:demo`, opciones del importador y parámetros de la API) y se agregó la migración `006_quitar_demo.sql`; ahora hay 6 migraciones (001 a 006). Las menciones a datos demo y a `seed:demo` más abajo describen lo que se hizo ese día y ya no aplican. Los comandos vigentes están en el apéndice y en el [README](../README.md).
+> **Nota posterior (2026-10-09).** Este informe es histórico y se conserva tal como se escribió. Después se retiró todo lo «demo» del producto (datos, columna, fuente, `seed:demo`, opciones del importador y parámetros de la API) y se agregó la migración `006_quitar_demo.sql` (después llegaron más: la lista vigente está en `db/migrations/`). Las menciones a datos demo y a `seed:demo` más abajo describen lo que se hizo ese día y ya no aplican. Los comandos vigentes están en el apéndice y en el [README](../README.md). Tampoco aplican ya la escala 1 a 4 (desde el método v3 es 0 a 4) ni la tarea diaria de `pnpm purge` (desde el 2026-10-21 se conserva todo; ver [OPERACION.md](OPERACION.md) §4).
 
 Fecha: 2026-10-08. Verificación desde cero en una base propia (`agua_final`, PostGIS en Docker, puerto 5433), servidor de producción en el puerto 3199.
 

@@ -25,7 +25,7 @@ export default function Denunciar() {
       etiqueta="Denunciar · Canales verificados"
       indice={INDICE}
       titulo="Dónde reportar o denunciar"
-      resumen="Solo incluimos contactos que revisamos en el sitio oficial de cada institución el 8 de octubre de 2026. Pueden cambiar: confirma siempre en el enlace oficial."
+      resumen="Solo incluimos contactos que revisamos en el sitio oficial de cada institución el 21 de octubre de 2026. Pueden cambiar: confirma siempre en el enlace oficial."
     >
 
       <Aviso tono="info" titulo="Antes de llamar">
@@ -38,8 +38,8 @@ export default function Denunciar() {
 
       <h2 id="emergencias">Emergencias</h2>
       <p>
-        <Tel numero="9-1-1" marcar="911" />: número único de emergencias médicas, de seguridad y protección civil, gratis,
-        las 24 horas. <Fuente href={F.nueveUnoUno} />
+        <Tel numero="9-1-1" marcar="911" />: número único de emergencias médicas, de seguridad y protección civil.{" "}
+        <Fuente href={F.nueveUnoUno} />
       </p>
 
       <h2 id="siapa">SIAPA (quien da el servicio de agua)</h2>
@@ -94,8 +94,9 @@ export default function Denunciar() {
         </li>
         <li>
           Contexto: la CEDHJ informó haber recibido 151 quejas relacionadas con el SIAPA entre diciembre de 2024 y julio de
-          2026<SegunMedios />. El decreto del descuento prevé que la CEDHJ entregue un listado de colonias con quejas
-          <SegunMedios />. <Fuente href={F.aztecaDecreto} /> Eso no garantiza que tu queja individual genere un descuento.
+          2026<SegunMedios />. <Fuente href={F.telediarioCedhj} /> El decreto del descuento prevé que la CEDHJ entregue un
+          listado de colonias con quejas<SegunMedios />. <Fuente href={F.aztecaDecreto} /> Eso no garantiza que tu queja
+          individual genere un descuento.
         </li>
       </ul>
 

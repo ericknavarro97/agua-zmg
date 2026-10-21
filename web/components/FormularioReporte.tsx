@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { GRAVEDADES, SINTOMAS } from "@/lib/severity";
-import { Muestra } from "./niveles";
+import { Muestra, MuestraSinAgua } from "./niveles";
 
 type Estado = "idle" | "enviando" | "ok" | "actualizado" | "error";
+/** Un nivel 0-4, o «Hoy no llegó agua» (se envía como gravedad null y no entra en el color). */
+type Eleccion = number | "sin_agua";
 
 const CLAVE_LS = "agua-zmg:reportes-hoy";
 
@@ -66,7 +68,7 @@ export default function FormularioReporte({
   /** Llevar el foco al título al montarse (cuando la persona pidió reportar) */
   enfocar?: boolean;
 }) {
-  const [gravedad, setGravedad] = useState<number | null>(null);
+  const [eleccion, setEleccion] = useState<Eleccion | null>(null);
   const [sintomas, setSintomas] = useState<string[]>([]);
   const [comentario, setComentario] = useState("");
   const [hp, setHp] = useState(""); // señuelo anti-bots: una persona nunca lo ve ni lo llena
@@ -86,7 +88,7 @@ export default function FormularioReporte({
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
-    if (gravedad === null || estado === "enviando") return;
+    if (eleccion === null || estado === "enviando") return;
     setEstado("enviando");
     setMensaje("");
     let status: number | null = null;
@@ -97,11 +99,12 @@ export default function FormularioReporte({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           colonia_id: coloniaId,
-          gravedad,
+          gravedad: eleccion === "sin_agua" ? null : eleccion,
           sintomas,
           comentario: comentario.trim() || undefined,
           hp,
-          tiempo_ms: Math.max(0, Date.now() - abierto.current),
+          // tope del servidor: 7 días (una pestaña olvidada abierta no debe dar un error que no se puede corregir)
+          tiempo_ms: Math.min(7 * 24 * 3600 * 1000, Math.max(0, Date.now() - abierto.current)),
         }),
       });
       status = res.status;
@@ -126,10 +129,17 @@ export default function FormularioReporte({
         <p className="font-semibold">
           {estado === "ok" ? "¡Gracias! Recibimos tu reporte." : "Listo, actualizamos tu reporte de hoy."}
         </p>
-        <p className="mt-1">
-          Tu reporte ya cuenta en el mapa: con pocos reportes el color se ve tenue, y se afirma conforme más vecinos
-          reportan. Comparte el mapa con tus vecinos: mientras más reportes, más confiable es el color.
-        </p>
+        {eleccion === "sin_agua" ? (
+          <p className="mt-1">
+            Lo verás en el panel de la colonia en unos minutos, junto con los demás vecinos a los que no les llegó agua. No
+            cambia el color del mapa: el color describe cómo llega el agua cuando sí llega.
+          </p>
+        ) : (
+          <p className="mt-1">
+            Se sumará al mapa en unos minutos. Con pocos reportes el color se ve tenue y se afirma conforme más vecinos
+            reportan. Comparte el mapa con tus vecinos: mientras más reportes, más confiable es el color.
+          </p>
+        )}
       </div>
     );
   }
@@ -146,15 +156,16 @@ export default function FormularioReporte({
       <fieldset>
         <legend className="text-sm font-semibold">¿Cómo llega el agua a tu casa hoy?</legend>
         <p className="mb-2 text-xs text-[#3b4f5c]">
-          Elige según cómo se ve y huele. Si solo falta agua o hay poca presión, márcalo abajo en «Sin agua / baja presión» y
-          elige el nivel de lo que ves cuando sí llega. Ningún nivel significa que el agua sea segura para beber.
+          Elige según cómo se ve y huele. Si hoy no llegó agua, elige «Hoy no llegó agua» al final: se cuenta aparte y no
+          cambia el color. Si llega con poca presión, elige lo que ves y marca abajo «Sin agua / baja presión». Ningún nivel
+          significa que el agua sea segura para beber.
         </p>
         <div className="space-y-2">
           {GRAVEDADES.map((g) => (
             <label
               key={g.nivel}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 bg-white p-2.5 text-sm has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-sky-700 ${
-                gravedad === g.nivel ? "border-tinta" : "border-borde hover:border-[#b9c6cf]"
+                eleccion === g.nivel ? "border-tinta" : "border-borde hover:border-[#b9c6cf]"
               }`}
             >
               <input
@@ -162,17 +173,37 @@ export default function FormularioReporte({
                 name="gravedad"
                 value={g.nivel}
                 className="sr-only"
-                checked={gravedad === g.nivel}
-                onChange={() => setGravedad(g.nivel)}
+                checked={eleccion === g.nivel}
+                onChange={() => setEleccion(g.nivel)}
               />
               <Muestra nivel={g.nivel} grande />
               <span>
                 <strong>{g.etiqueta}</strong>
                 <span className="block text-xs text-[#3b4f5c]">{g.detalle}</span>
               </span>
-              {gravedad === g.nivel && <span className="mono-etiqueta ml-auto !text-[0.6875rem]">Elegido</span>}
+              {eleccion === g.nivel && <span className="mono-etiqueta ml-auto !text-[0.6875rem]">Elegido</span>}
             </label>
           ))}
+          <label
+            className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed bg-white p-2.5 text-sm has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-sky-700 ${
+              eleccion === "sin_agua" ? "border-tinta" : "border-borde hover:border-[#b9c6cf]"
+            }`}
+          >
+            <input
+              type="radio"
+              name="gravedad"
+              value="sin_agua"
+              className="sr-only"
+              checked={eleccion === "sin_agua"}
+              onChange={() => setEleccion("sin_agua")}
+            />
+            <MuestraSinAgua grande />
+            <span>
+              <strong>Hoy no llegó agua</strong>
+              <span className="block text-xs text-[#3b4f5c]">No hay agua que describir. Se cuenta aparte, no cambia el color</span>
+            </span>
+            {eleccion === "sin_agua" && <span className="mono-etiqueta ml-auto !text-[0.6875rem]">Elegido</span>}
+          </label>
         </div>
       </fieldset>
 
@@ -214,8 +245,8 @@ export default function FormularioReporte({
           className="w-full rounded-xl border border-[#b9c6cf] bg-white p-2.5 text-base outline-none placeholder:text-texto-tenue focus:border-tinta"
         />
         <p id="comentario-ayuda" className="mt-1 text-xs text-texto-tenue">
-          <strong>Tu comentario se mostrará públicamente</strong> en la página de esta colonia, solo con el día y sin tu nombre.
-          No escribas nombres, teléfonos ni tu dirección. {comentario.length}/500
+          <strong>Tu comentario se mostrará públicamente</strong> en la página de esta colonia en cuanto lo envíes, con el día y
+          lo que elegiste arriba, sin tu nombre ni la hora. No escribas nombres, teléfonos ni tu dirección. {comentario.length}/500
         </p>
       </div>
 
@@ -244,14 +275,14 @@ export default function FormularioReporte({
 
       <button
         type="submit"
-        disabled={gravedad === null || estado === "enviando"}
+        disabled={eleccion === null || estado === "enviando"}
         className="min-h-12 w-full rounded-[15px] bg-tinta px-4 py-3 text-base font-bold text-white hover:bg-[#13334a] disabled:bg-[#9fb3c2] disabled:text-tinta"
       >
-        {estado === "enviando" ? "Enviando…" : gravedad !== null ? "Enviar mi reporte" : "Elige cómo llega el agua para enviar"}
+        {estado === "enviando" ? "Enviando…" : eleccion !== null ? "Enviar mi reporte" : "Elige cómo llega el agua para enviar"}
       </button>
       <p className="text-xs leading-relaxed text-texto-tenue">
         Sin cuenta ni nombre. No guardamos tu IP ni tu ubicación. Para evitar reportes repetidos guardamos una huella diaria
-        (un código que no permite saber quién eres) hasta por 30 días. Un reporte por colonia al día.{" "}
+        (un código que no permite saber quién eres y que nunca se publica). Un reporte por colonia al día.{" "}
         <Link href="/privacidad" className="text-marca underline">Aviso de privacidad</Link>.
       </p>
     </form>

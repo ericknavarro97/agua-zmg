@@ -42,7 +42,8 @@ describe("GET /api/colonias/scores: contrato", () => {
     expect(Number.isInteger(s.n)).toBe(true);
     expect(Number.isInteger(s.n_huellas)).toBe(true);
     expect(["baja", "media", "alta"]).toContain(s.confianza);
-    expect(new Date(s.ultimo).toISOString()).toBe(s.ultimo);
+    // solo el día (hora de Guadalajara), nunca la hora
+    expect(s.ultimo).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(s.n).toBe(8);
     expect(s.n_huellas).toBe(8);
   });
@@ -53,12 +54,13 @@ describe("GET /api/colonias/scores: contrato", () => {
     expect((await lista()).map((s) => s.id)).toEqual(ids);
   });
 
-  it("un reporte reciente deja a la colonia con ultimo = ese reporte", async () => {
+  it("un reporte reciente deja a la colonia con ultimo = el día de ese reporte (hoy en Guadalajara), sin hora", async () => {
     const c = await crearColonia();
     await sembrarVecinos(c, 2, 3, { edadBase: 3 });
     await sembrar({ colonia: c, gravedad: 2, edadDias: 0.001 });
     const s = (await de(c))!;
-    expect(Date.now() - new Date(s.ultimo).getTime()).toBeLessThan(5 * 60_000);
+    const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date());
+    expect(s.ultimo).toBe(hoy);
   });
 });
 

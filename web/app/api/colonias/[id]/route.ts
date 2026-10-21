@@ -1,9 +1,11 @@
 import { pool } from "@/lib/db";
-import { PARAMS, cargarSerie, scoresConCache } from "@/lib/aggregation";
+import { PARAMS, cargarSerie, cargarSinAgua, scoresConCache } from "@/lib/aggregation";
 import { jsonConEtag } from "@/lib/oficial-http";
 import { type FilaOficial, aContratoOficial } from "@/lib/oficial";
 
-const CACHE = "public, max-age=30, s-maxage=60, stale-while-revalidate=300, stale-if-error=3600";
+// Corta y sin stale-if-error: aquí salen los comentarios, y uno que un moderador retira debe dejar de verse en
+// alrededor de un minuto (s-maxage + stale-while-revalidate), no seguir en la CDN mientras el origen falla.
+const CACHE = "public, max-age=15, s-maxage=30, stale-while-revalidate=30";
 const SIN_CACHE = "no-store";
 
 // Detalle de una colonia: reportes ciudadanos (agregados, sin huellas) + comentarios públicos + datos externos vinculados.
@@ -44,10 +46,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 
   // n, huellas y último salen del MISMO cálculo que el nivel (antes se volvían a consultar aparte y podían no
   // coincidir con el nivel en caché). La serie usa los mismos topes por red que el score (lib/aggregation.ts).
-  const [serie, comentarios] = await Promise.all([
+  const [serie, sinAgua, comentarios] = await Promise.all([
     cargarSerie(pool, id, 30),
+    // «Hoy no llegó agua»: se publica aparte y no entra en el nivel
+    cargarSinAgua(pool, id),
     // Comentarios que su autor aceptó mostrar (el formulario lo avisa). Solo el día, sin hora ni identificadores.
-    // Un reporte oculto o en revisión también retira su comentario. Misma ventana que el nivel.
+    // Un reporte oculto o en revisión también retira su comentario. Misma ventana que el nivel. gravedad es null en
+    // los de «Hoy no llegó agua».
     pool.query(
       `SELECT to_char((creado_en AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS dia,
               gravedad::int AS gravedad, comentario AS texto
@@ -74,7 +79,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       ultimo: s ? s.ultimo : null,
       serie,
     },
-    comentarios: comentarios.rows as { dia: string; gravedad: number; texto: string }[],
+    sin_agua: sinAgua,
+    comentarios: comentarios.rows as { dia: string; gravedad: number | null; texto: string }[],
     oficial: oficial.rows.map((o) => aContratoOficial(o as FilaOficial)),
   };
   return jsonConEtag(req, cuerpo, CACHE);

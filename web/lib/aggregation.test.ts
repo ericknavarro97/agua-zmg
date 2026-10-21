@@ -16,7 +16,7 @@ function rep(
 const resumen = (gs: Grupo[]): Map<number, ResumenColonia> => {
   const m = new Map<number, ResumenColonia>();
   for (const g of gs) {
-    const r = m.get(g.coloniaId) ?? { n: 0, nHuellas: 0, ultimoMs: Date.UTC(2026, 9, 8) };
+    const r = m.get(g.coloniaId) ?? { n: 0, nHuellas: 0, ultimoDia: "2026-10-08" };
     r.n += g.n;
     r.nHuellas += g.n; // en estos casos cada reporte es una huella
     m.set(g.coloniaId, r);

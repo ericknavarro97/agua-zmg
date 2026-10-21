@@ -17,12 +17,13 @@ const INDICE = [
   { id: "cuanto", texto: "Cuánto tiempo" },
   { id: "terceros", texto: "Con quién se comparte" },
   { id: "derechos", texto: "Tus derechos" },
+  { id: "cambios", texto: "Cambios a este aviso" },
 ];
 
 export default function Privacidad() {
   return (
     <Pagina
-      etiqueta="Privacidad · Versión 0.1"
+      etiqueta="Privacidad · Versión 0.2"
       indice={INDICE}
       titulo="Aviso de privacidad"
       resumen="Versión simplificada. Aquí decimos con precisión qué guarda el sistema, no lo que sería más cómodo decir."
@@ -32,7 +33,7 @@ export default function Privacidad() {
           <p>
             Este aviso describe lo que hace el sistema hoy. Todavía no lo ha revisado un abogado
             {hayResponsable() ? "" : " y falta definir quién es la persona u organización responsable (ver abajo)"}. Versión
-            0.1, 8 de octubre de 2026.
+            0.2, 21 de octubre de 2026.
           </p>
         </Aviso>
       )}
@@ -52,16 +53,18 @@ export default function Privacidad() {
 
       <h2 id="que-guardamos">Qué guardamos cuando envías un reporte</h2>
       <ul>
-        <li>La colonia, la gravedad que elegiste (0 a 4) y la fecha y hora.</li>
+        <li>La colonia, la gravedad que elegiste (0 a 4) o que no llegó agua, y la fecha y hora.</li>
         <li>
           Los <strong>síntomas</strong> que marcaste (por ejemplo, «diarrea o malestar estomacal»). Son información de salud, un
           dato sensible. Solo se guardan si los marcas y no están ligados a tu nombre, porque no te lo pedimos.
         </li>
         <li>
           Un <strong>comentario</strong>, solo si lo escribes. Antes de guardarlo se enmascaran teléfonos, correos y enlaces.
-          <strong> Se muestra públicamente</strong> en la página de la colonia, solo con el día y la gravedad que elegiste, sin
-          tu nombre ni la hora. El formulario te lo avisa antes de enviar. Un moderador puede retirarlo. No escribas nombres ni
-          direcciones. Los comentarios enviados antes de este aviso nunca se publican.
+          <strong> Se muestra públicamente en cuanto lo envías</strong>, sin revisión previa, en la página de la colonia, solo
+          con el día y lo que elegiste (la gravedad o que no llegó agua), sin tu nombre ni la hora. El formulario te lo avisa
+          antes de enviar. Un moderador puede retirarlo después; tarda alrededor de un minuto en dejar de verse. No escribas
+          nombres ni direcciones. Los comentarios enviados antes de que el formulario empezara a avisarlo nunca se
+          publican.
         </li>
         <li>
           El tiempo que tardaste en llenar el formulario (una señal contra programas automáticos).
@@ -75,8 +78,8 @@ export default function Privacidad() {
       </ul>
       <Aviso tono="info">
         <p>
-          Honestidad técnica: la huella es un <em>seudónimo</em>, no una anonimización perfecta. Por eso la borramos a los 30
-          días (ver abajo) y por eso no decimos «no guardamos datos personales», sino exactamente qué guardamos.
+          Honestidad técnica: la huella es un <em>seudónimo</em>, no una anonimización perfecta. Por eso nunca se publica y por
+          eso no decimos «no guardamos datos personales», sino exactamente qué guardamos y cuánto tiempo (ver abajo).
         </p>
       </Aviso>
 
@@ -106,32 +109,40 @@ export default function Privacidad() {
         <li>Calcular el nivel de cada colonia (<Link href="/metodologia">metodología</Link>).</li>
         <li>Limitar el abuso: un reporte por colonia por persona al día, y detectar ráfagas o programas automáticos.</li>
         <li>
-          Publicar solo <strong>agregados por colonia</strong> en el mapa y en los datos abiertos (<Link href="/datos">datos</Link>);
-          nunca huellas, códigos de red ni comentarios.
+          Publicar <strong>agregados por colonia</strong> en el mapa y en los datos abiertos (<Link href="/datos">datos</Link>), y
+          los <strong>comentarios</strong> en la página de cada colonia (los datos abiertos no los incluyen). Nunca publicamos
+          huellas, códigos de red ni la hora de un reporte.
         </li>
+        <li>Conservar un registro histórico de cómo llegó el agua a cada colonia durante la crisis, para la comunidad.</li>
       </ul>
       <p>No usamos tus datos para publicidad ni los vendemos.</p>
 
       <h2 id="cuanto">Cuánto tiempo los guardamos</h2>
-      {/* El plazo lo ejecuta web/scripts/purge.ts (servicio `retencion` de docker-compose.prod.yml; docs/OPERACION.md §4). Si esa tarea no corre a diario, esta promesa no se cumple: /admin avisa. Las copias de seguridad: docs/OPERACION.md §3.3. */}
+      {/* Decisión del proyecto (21-oct-2026): se conserva todo como registro de la comunidad y la tarea de borrado
+          (web/scripts/purge.ts) no está programada. Si algún día se programa, este apartado debe decir el plazo real. */}
       <ul>
         <li>
-          La huella, los códigos de red y de navegador y el control del comentario se <strong>borran a los 30 días</strong>. El
-          comentario también se borra a los 30 días.
+          <strong>Conservamos los reportes</strong> como registro histórico de la comunidad: colonia, gravedad o que no llegó
+          agua, síntomas marcados, fecha y, si lo escribiste, el comentario. No tienen fecha de borrado.
         </li>
         <li>
-          Después de eso queda solo la colonia, la gravedad, los síntomas marcados y la fecha, ya sin ningún identificador.
+          Los <strong>códigos de control</strong> (huella, códigos de red y familia del navegador) también se conservan. Nunca se
+          publican y solo se usan para limitar abusos. Si algún día los borramos o anonimizamos, lo diremos aquí con fecha.
         </li>
         <li>
-          Las copias de seguridad cifradas de la base se conservan 14 días, así que un dato ya borrado puede seguir en una copia
-          hasta unos <strong>45 días</strong> en total, y luego desaparece también de ahí.
+          No hacemos copias de seguridad propias. Nuestro proveedor de base de datos guarda un historial de restauración de
+          corta duración para recuperarse de una falla.
+        </li>
+        <li>
+          Si quieres que retiremos tu comentario, escríbenos con la colonia, el día y el texto (ver «Tus derechos»).
         </li>
       </ul>
 
       <h2 id="terceros">Con quién se comparte</h2>
       <ul>
         <li>
-          No compartimos datos individuales con terceros. Lo que es público son los agregados por colonia, sin identificadores.
+          No compartimos datos individuales con terceros. Lo que es público son los agregados por colonia y los comentarios en
+          la página de cada colonia, sin identificadores ni hora.
         </li>
         <li>
           Dentro del proyecto, <strong>personas moderadoras</strong> pueden leer los comentarios y los síntomas marcados (que son
@@ -139,8 +150,8 @@ export default function Privacidad() {
           persona o una dirección, lo borramos.
         </li>
         <li>
-          Nuestros proveedores de alojamiento y base de datos procesan la información por nuestra cuenta (por definir cuáles al
-          publicar el sitio).
+          Nuestros proveedores procesan la información por nuestra cuenta: Vercel aloja el sitio y Neon aloja la base de
+          datos.
         </li>
         <li>
           Solo entregaríamos información a una autoridad ante un requerimiento legal válido, y aun así solo tenemos lo descrito
@@ -161,9 +172,23 @@ export default function Privacidad() {
           </>
         )}
       </p>
-      <p>
-        Los cambios a este aviso se publicarán aquí con fecha y versión.
-      </p>
+      <h2 id="cambios">Cambios a este aviso</h2>
+      <p>Los cambios a este aviso se publican aquí con fecha y versión.</p>
+      <ul>
+        <li>
+          <strong>0.2 (21 de octubre de 2026).</strong> Los datos se conservan como registro de la comunidad, sin fecha de
+          borrado (antes decía que la huella y el comentario se borraban a los 30 días y que había copias de 14 días; esa tarea
+          nunca llegó a programarse). Se nombran los proveedores (Vercel y Neon). Se agrega la opción «Hoy no llegó agua». Se
+          aclara que los comentarios se publican en cuanto se envían, sin revisión previa.
+        </li>
+        <li>
+          <strong>Octubre de 2026.</strong> Los comentarios nuevos se muestran en la página de la colonia (el formulario lo
+          avisa).
+        </li>
+        <li>
+          <strong>0.1 (8 de octubre de 2026).</strong> Primera versión.
+        </li>
+      </ul>
     </Pagina>
   );
 }

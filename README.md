@@ -13,13 +13,13 @@ Contexto: octubre de 2026, crisis de agua turbia en la ZMG reportada en cientos 
 ## Qué hace
 
 - **Mapa** (`/`): colonias coloreadas por gravedad (0 limpia, 1 leve, 2 moderada, 3 grave, 4 crítica) con búsqueda, ubicación y detalle de cada colonia. Una colonia solo se pinta cuando hay evidencia suficiente; si no, aparece en gris ("sin datos suficientes"). La confianza (baja, media, alta) se comunica aparte del color.
-- **Reportar**: formulario anónimo (sin cuentas): colonia, gravedad, síntomas y comentario opcional.
+- **Reportar**: formulario anónimo (sin cuentas): colonia, gravedad (o «Hoy no llegó agua», que se cuenta aparte y no cambia el color), síntomas y comentario opcional, que se publica en la página de la colonia.
 - **Datos externos** (en la web, «Reportes publicados»): mediciones y listados de fuentes oficiales, académicas, periodísticas y ciudadanas, **separados** del puntaje ciudadano, cada uno con su fuente original y URL (ver [`data/oficial/FUENTES.md`](data/oficial/FUENTES.md)).
 - **Guía** (`/que-hacer`, `/denunciar`): qué hacer y cómo denunciar, solo con afirmaciones que tienen fuente verificada ([`docs/research/guia-contenido.md`](docs/research/guia-contenido.md)).
 - **API pública abierta** (`/api/v1`): los agregados por colonia, en GeoJSON y CSV, con licencia declarada ([`docs/API.md`](docs/API.md)).
 - **Panel de moderación** (`/admin`), protegido con `ADMIN_TOKEN`.
 
-Páginas previstas: `/`, `/que-hacer`, `/denunciar`, `/metodologia`, `/datos`, `/privacidad`, `/acerca` y `/admin`. Revisa `web/app/` para ver cuáles están ya implementadas en tu copia.
+Páginas: `/`, `/que-hacer`, `/denunciar`, `/metodologia`, `/datos`, `/privacidad`, `/acerca` y `/admin`.
 
 ## Arquitectura
 
@@ -61,6 +61,7 @@ Páginas previstas: `/`, `/que-hacer`, `/denunciar`, `/metodologia`, `/datos`, `
 | `docker-compose.yml` | Base de datos local de desarrollo |
 | `docker-compose.prod.yml` | Producción en un VPS (web + PostGIS + migraciones) |
 | `.github/workflows/ci.yml` | Integración continua |
+| `.github/workflows/migraciones.yml` | Aplica las migraciones a producción cuando la CI de `main` pasa ([`docs/DEPLOY.md`](docs/DEPLOY.md) §1.6) |
 
 ## Arranque local
 
@@ -71,7 +72,7 @@ docker compose up -d                  # PostGIS en localhost:5433 (usuario/clave
 cd web
 pnpm install
 cp .env.example .env.local            # y revisa los valores (ver "Variables de entorno")
-pnpm migrate                          # aplica db/migrations/*.sql (001 a 008)
+pnpm migrate                          # aplica db/migrations/*.sql (001 a 009)
 pnpm import:colonias ../data/colonias_zmg.geojson --fuente-geom ine_colonias   # colonias reales
 pnpm import:oficial --todos           # datos externos (opcional)
 pnpm dev                              # http://localhost:3000
@@ -131,10 +132,10 @@ La lista completa y comentada está en [`web/.env.example`](web/.env.example). L
 
 ## Cómo se calcula la gravedad
 
-Cada reporte trae una gravedad de 0 (limpia) a 4 (crítica). El color de una colonia (`nivel`) es su **score** redondeado, calculado por el método **v3** (`web/lib/aggregation.ts`, parámetros versionados; cambiar uno exige subir la versión):
+Cada reporte trae una gravedad de 0 (limpia) a 4 (crítica). El color de una colonia (`nivel`) es su **score** redondeado, calculado por el método **v4** (`web/lib/aggregation.ts`, parámetros versionados; cambiar uno exige subir la versión):
 
-1. **Qué cuenta:** solo reportes `visible` y no sospechosos de los últimos 14 días. Los reportes con el campo trampa lleno o enviados instantáneamente se guardan marcados y **no cuentan** (el bot recibe la misma respuesta que un usuario normal).
-2. **Peso por reporte:** limitado según cuántos reportes llegan de la misma red en esa colonia el mismo día y la misma semana (nadie puede pesar más por insistir), reducido si la red concentra muchos reportes o si el formulario se envió demasiado rápido.
+1. **Qué cuenta:** solo reportes `visible`, no sospechosos y con gravedad, de los últimos 14 días (los de «Hoy no llegó agua» se cuentan aparte, en el panel de la colonia). Los reportes con el campo trampa lleno o enviados instantáneamente se guardan marcados y **no cuentan** (el bot recibe la misma respuesta que un usuario normal).
+2. **Peso por reporte:** limitado según cuántos reportes llegan de la misma red en esa colonia el mismo día y la misma semana (nadie puede pesar más por insistir), reducido si la red concentra muchos reportes o si el formulario se envió demasiado rápido (o sin declarar cuánto tardó).
 3. **Decaimiento:** cada reporte pierde la mitad de su peso cada 7 días, tanto en el promedio como en la evidencia que alimenta la confianza.
 4. **Media recortada:** se descarta el 20 % del peso en cada extremo de la escala, para que unos pocos reportes extremos no muevan el color. El score **es** esta media (desde v3 no hay contracción hacia un prior: en v2 un solo reporte «leve» salía «moderada»).
 5. **Publicable:** basta un reporte completo (peso sin decaer ≥ 1; uno enviado en menos de 5 s pesa la mitad). Con pocos reportes el color sale tenue y con confianza baja. Sin reportes, la colonia sale en gris.
@@ -144,7 +145,7 @@ Los umbrales son valores iniciales razonados, **no medidos**: se recalibrarán c
 
 ### Privacidad
 
-La IP y el *User-Agent* completo nunca se guardan. Por reporte se guardan identificadores derivados con HMAC (clave `HASH_SALT`, fuera de la base) que se **anonimizan** pasado el periodo de retención (`pnpm purge`, 30 días por defecto), y el comentario libre —depurado de teléfonos, correos y enlaces— no se publica y se borra con la misma tarea. Estos identificadores son seudónimos, no datos disociados: el aviso de privacidad debe decirlo con precisión.
+La IP y el *User-Agent* completo nunca se guardan. Por reporte se guardan identificadores derivados con HMAC (clave `HASH_SALT`, fuera de la base), que nunca se publican. El comentario libre se depura de teléfonos, correos y enlaces y **se publica en la página de la colonia en cuanto se envía**, sin revisión previa (no va en `/api/v1`). Todo se conserva como registro de la comunidad: `pnpm purge` existe pero no está programado (decisión en [`docs/DECISIONES-PENDIENTES.md`](docs/DECISIONES-PENDIENTES.md) §7). Los identificadores son seudónimos, no datos disociados: el aviso de privacidad lo dice así.
 
 ## API pública
 
@@ -177,4 +178,4 @@ Hay mucho por hacer y toda ayuda cuenta: código, revisión de datos y textos, p
 - El mapa base es de un tercero sin SLA.
 - La guía "Qué hacer" **debe ser revisada por un profesional de salud** antes de presentarse como definitiva ([`docs/DECISIONES-PENDIENTES.md`](docs/DECISIONES-PENDIENTES.md) §8).
 - El proyecto aún no tiene archivo `LICENSE`: la licencia del código y de los datos está **pendiente de decisión**.
-- Fecha de referencia de esta documentación: 2026-10-08.
+- Fecha de referencia de esta documentación: 2026-10-21.

@@ -85,14 +85,15 @@ describe("admin habilitado: autenticación", () => {
     }
   });
 
-  it(`tras ${LIMITES.adminFallosVentana} intentos fallidos la red recibe 429 al fallar, pero la credencial correcta sigue entrando; otra red no se afecta`, async () => {
+  it(`tras ${LIMITES.adminFallosVentana} intentos fallidos la red recibe 429 con cualquier token, también el correcto; otra red no se afecta`, async () => {
     const ip = ipNueva();
     for (let i = 0; i < LIMITES.adminFallosVentana; i++) {
       expect((await GET(pedir("GET", "/api/admin/moderacion", { ip, headers: bearer("mal-" + i) }))).status).toBe(401);
     }
     expect((await GET(pedir("GET", "/api/admin/moderacion", { ip, headers: bearer("mal-otra-vez") }))).status).toBe(429);
-    expect((await GET(pedir("GET", "/api/admin/moderacion", { ip, headers: bearer() }))).status).toBe(200);
-    expect((await abrirSesion(pedir("POST", "/api/admin/sesion", { ip, cuerpo: { token: TOKEN } }))).status).toBe(200);
+    // el correcto también recibe 429: si entrara, 429/200 delataría el acierto y el bloqueo no frenaría la fuerza bruta
+    expect((await GET(pedir("GET", "/api/admin/moderacion", { ip, headers: bearer() }))).status).toBe(429);
+    expect((await abrirSesion(pedir("POST", "/api/admin/sesion", { ip, cuerpo: { token: TOKEN } }))).status).toBe(429);
     expect((await abrirSesion(pedir("POST", "/api/admin/sesion", { ip, cuerpo: { token: "mal-mal-mal-mal-mal" } }))).status).toBe(429);
     expect((await GET(pedir("GET", "/api/admin/moderacion", { headers: bearer() }))).status).toBe(200);
   });

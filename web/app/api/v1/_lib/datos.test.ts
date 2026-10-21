@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 // datos.ts importa el pool de pg; en esta prueba solo se usa la función pura `filtrar`
 vi.mock("../../../../lib/db", () => ({ pool: {} }));
-vi.mock("../../../../lib/aggregation", () => ({ paraContrato: () => ({}), scoresConCache: async () => [] }));
+vi.mock("../../../../lib/aggregation", () => ({ METODO: "vtest", paraContrato: () => ({}), scoresConCache: async () => [] }));
 
 import { filtrar } from "./datos";
 
