@@ -1,11 +1,15 @@
-# Aplica db/migrations/*.sql a la base de PRODUCCIÓN (Neon) en cada push a main.
+# Aplica db/migrations/*.sql a la base de PRODUCCIÓN (Neon) cuando la CI de un push a main termina en verde.
 # Vercel despliega por su cuenta y no migra: sin esto, el código nuevo puede llegar a una base vieja
 # (pasó con 008_nivel_limpia.sql: los reportes «Limpia» respondían 500).
+# Espera a la CI para que una migración que rompe las pruebas nunca llegue a producción. A cambio, Vercel suele
+# desplegar antes que esto: cada migración debe ser compatible con el código anterior Y con el nuevo (CONTRIBUTING.md).
 # El migrador es idempotente (schema_migrations), así que correrlo en cada push no repite nada.
 name: Migraciones en producción
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   # Para reintentar a mano desde la pestaña Actions
   workflow_dispatch:
@@ -21,6 +25,10 @@ permissions:
 jobs:
   migrar:
     name: Migrar base de producción
+    # Solo si la CI pasó y fue de un push a main (no de un pull request cuya rama se llame main)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -42,7 +50,10 @@ jobs:
             exit 1
           fi
 
+      # El commit que pasó la CI (workflow_run corre con el workflow de main, no necesariamente ese commit)
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: pnpm/action-setup@v4
         with:
