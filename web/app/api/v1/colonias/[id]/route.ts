@@ -1,7 +1,7 @@
 import { cabecerasPublicas, error, memorizar, metadatos, opciones } from "../../_lib/comun";
 import { coloniaDetalle } from "../../_lib/datos";
 
-// GET /api/v1/colonias/[id]  ->  agregados de reportes (30 días) + datos externos con su fuente
+// GET /api/v1/colonias/[id]  ->  agregados de todos los reportes + serie diaria + datos externos con su fuente
 export async function GET(_request: Request, ctx: RouteContext<"/api/v1/colonias/[id]">) {
   const { id: idTexto } = await ctx.params;
   if (!/^\d{1,9}$/.test(idTexto)) return error(400, "id inválido");

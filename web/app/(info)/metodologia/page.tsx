@@ -35,7 +35,7 @@ export default function Metodologia() {
       etiqueta={`Metodología · Método ${METODO}`}
       indice={INDICE}
       titulo="Metodología: cómo se calcula el mapa"
-      resumen={`Publicamos las reglas y los números para que cualquiera pueda revisarlos. Método vigente: «${METODO}» (se puede reportar agua limpia o que no llegó agua, y un reporte se pinta con el nivel que dice).`}
+      resumen={`Publicamos las reglas y los números para que cualquiera pueda revisarlos. Método vigente: «${METODO}» (todos los reportes cuentan siempre y ninguno desaparece del mapa; los recientes pesan más).`}
     >
 
       <h2 id="que-es">Qué es y qué NO es</h2>
@@ -88,8 +88,9 @@ export default function Metodologia() {
 
       <h2 id="calculo">Cómo se calcula el nivel de una colonia</h2>
       <p>
-        Solo cuentan los reportes de los últimos <strong>14 días</strong> que tengan nivel (los de «Hoy no llegó agua» van
-        aparte) y que no estén ocultos ni marcados como sospechosos.
+        Cuentan <strong>todos los reportes, sin importar cuándo se enviaron</strong>, que tengan nivel (los de «Hoy no llegó
+        agua» van aparte) y que no estén ocultos ni marcados como sospechosos. Ningún reporte deja de contar y una colonia
+        reportada nunca vuelve a gris: así siempre queda a la vista el historial de lo que reportaron los vecinos.
         El cálculo sigue estos pasos (el código es público: <code>web/lib/aggregation.ts</code>):
       </p>
       <ol>
@@ -100,9 +101,11 @@ export default function Metodologia() {
           segundos pesa la mitad, igual que un envío que no declara cuánto tardó (el formulario siempre lo declara).
         </li>
         <li>
-          <strong>Los recientes pesan más.</strong> Cada reporte pierde la mitad de su peso cada 7 días. Esto vale para el
-          promedio y también para la evidencia: un reporte de hace una semana cuenta como medio reporte para la confianza,
-          así que una colonia sin reportes nuevos va perdiendo confianza hasta salir del mapa a los 14 días.
+          <strong>Los recientes pesan más.</strong> Cada reporte pierde la mitad de su peso cada 7 días, pero nunca llega a
+          cero. Cuando hay reportes nuevos, son los que mandan en el color: un historial viejo casi no lo mueve, para que el
+          mapa diga cómo llega el agua ahora. Si una colonia solo tiene reportes viejos, conserva el color que esos reportes
+          dicen, con confianza baja (se ve tenue) y con la fecha del último reporte en su panel. La confianza también
+          descuenta lo viejo: un reporte de hace una semana cuenta como medio reporte.
         </li>
         <li>
           <strong>Promedio recortado.</strong> Se descarta el 20 % del peso en cada extremo (los reportes más bajos y los más
@@ -114,8 +117,8 @@ export default function Metodologia() {
         <li>
           <strong>Mínimo para publicar.</strong> Basta un reporte (o el equivalente: un formulario enviado en menos de 5
           segundos pesa la mitad, así que se necesitan dos). Un solo reporte pinta la colonia con el nivel que dice, pero
-          tenue y con trama, con confianza baja, y no cuenta como colonia «afectada» en el resumen. Sin ningún reporte, la
-          colonia se queda en gris.
+          tenue y con trama, con confianza baja, y no cuenta como colonia «afectada» en el resumen. Una vez publicada, la
+          colonia se queda publicada. Solo se ve en gris una colonia que nunca ha tenido reportes.
         </li>
         <li>
           El color es el promedio resultante redondeado al nivel entero más cercano (0 a 4).
@@ -149,8 +152,8 @@ export default function Metodologia() {
             <td><strong>Baja</strong></td>
             <td>
               Poca evidencia (menos de 5, contando que los reportes viejos pesan menos), o menos de 2 días con evidencia
-              suficiente (un día cuenta si aporta al menos 1.5), o más del 60 % de la evidencia llegó en un solo día. Puede ser
-              real, pero aún no se corrobora.
+              suficiente (un día cuenta si aporta al menos 1.5), o más del 60 % de la evidencia (también descontando lo viejo)
+              llegó en un solo día. Puede ser real, pero aún no se corrobora.
             </td>
             <td>Color tenue. No se cuenta como «colonia afectada» en el resumen.</td>
           </tr>
@@ -285,6 +288,13 @@ export default function Metodologia() {
 
       <h2 id="cambios">Cambios del método</h2>
       <ul>
+        <li>
+          <strong>v5 (22 oct 2026).</strong> Ningún reporte deja de contar: se quitó la ventana de 14 días, así que una
+          colonia reportada ya no vuelve a gris y su historial completo queda a la vista (también en la gráfica y los
+          comentarios del panel). Los reportes siguen perdiendo la mitad de su peso cada 7 días, así que lo reciente sigue
+          mandando en el color. La regla del «pico de un día» de la confianza se mide ahora sobre la evidencia descontada:
+          sin ventana, meses de historial habrían diluido un pico de hoy.
+        </li>
         <li>
           <strong>v4 (21 oct 2026).</strong> Nueva opción «Hoy no llegó agua»: esos reportes se cuentan aparte y no cambian
           el nivel (antes había que elegir un nivel aunque no llegara agua). Un envío que no declara cuánto tardó el

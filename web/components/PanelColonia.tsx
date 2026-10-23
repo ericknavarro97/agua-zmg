@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
-import { VENTANA_DIAS } from "@/lib/severity";
 import Compartir from "./Compartir";
 import ComentariosVecinos from "./ComentariosVecinos";
 import DatosOficiales from "./DatosOficiales";
@@ -252,8 +251,8 @@ export default function PanelColonia({
                     )}
                     <p className="mt-2 text-xs text-texto-tenue">
                       {/* Sin «dispositivos distintos»: la huella rota cada día, así que contaría a la misma persona una vez por día */}
-                      {n} {n === 1 ? "reporte" : "reportes"} en los últimos {VENTANA_DIAS} días
-                      {ultimo ? `; el último, ${haceCuanto(ultimo)}` : ""}. Los más recientes pesan más.
+                      {n} {n === 1 ? "reporte" : "reportes"} en total
+                      {ultimo ? `; el último, ${haceCuanto(ultimo)}` : ""}. Todos cuentan; los más recientes pesan más.
                     </p>
                   </>
                 ) : (
@@ -266,8 +265,8 @@ export default function PanelColonia({
                   <p className="mt-2 flex items-start gap-2 text-[#3b4f5c]">
                     <MuestraSinAgua />
                     <span>
-                      {sinAgua === 1 ? "1 reporte" : `${sinAgua} reportes`} de que <strong>no llegó agua</strong> en los últimos{" "}
-                      {VENTANA_DIAS} días{detalle?.sin_agua?.ultimo ? ` (el último, ${haceCuanto(detalle.sin_agua.ultimo)})` : ""}.
+                      {sinAgua === 1 ? "1 reporte" : `${sinAgua} reportes`} de que <strong>no llegó agua</strong>
+                      {detalle?.sin_agua?.ultimo ? ` (el último, ${haceCuanto(detalle.sin_agua.ultimo)})` : ""}.
                       Se cuentan aparte: no cambian el nivel.
                     </span>
                   </p>
@@ -280,9 +279,9 @@ export default function PanelColonia({
                 </p>
               </div>
 
-              {/* Serie de 30 días */}
+              {/* Historial: desde el primer reporte (mínimo 30 días) */}
               <section aria-labelledby="serie-t" className="mt-5">
-                <h3 id="serie-t" className="text-sm font-bold">Últimos 30 días</h3>
+                <h3 id="serie-t" className="text-sm font-bold">Historial de reportes</h3>
                 {carga.estado === "cargando" && (
                   <p className="mt-2 animate-pulse text-xs text-texto-tenue">Cargando el historial…</p>
                 )}
@@ -300,7 +299,7 @@ export default function PanelColonia({
                 )}
                 {rep && rep.serie.length > 0 && <Sparkline serie={rep.serie} />}
                 {rep && rep.serie.length === 0 && (
-                  <p className="mt-2 text-xs text-[#3b4f5c]">Aún no hay reportes de vecinos en los últimos 30 días.</p>
+                  <p className="mt-2 text-xs text-[#3b4f5c]">Aún no hay reportes de vecinos en esta colonia.</p>
                 )}
               </section>
 

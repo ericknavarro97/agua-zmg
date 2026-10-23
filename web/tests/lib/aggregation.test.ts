@@ -313,8 +313,12 @@ describe("decaimiento de la evidencia (v3)", () => {
     expect(x.nEff).toBeCloseTo(0.5, 9);
     expect(x.nBruta).toBeCloseTo(1, 9);
   });
-  it("un reporte viejo sigue publicando toda la ventana (se publica con la evidencia sin decaer)", () => {
+  it("un reporte viejo sigue publicando la colonia (se publica con la evidencia sin decaer, sin ventana desde v5)", () => {
     expect(calc([g(1, 3, 13.5)])).toHaveLength(1);
+    // un reporte de hace 60 días sigue pintando la colonia con su nivel, con confianza baja
+    const [x] = calc([g(1, 3, 60)]);
+    expect(x.nivel).toBe(3);
+    expect(x.confianza).toBe("baja");
   });
   it("muchos reportes de hace casi dos semanas ya no dan más que confianza baja (en v2 seguían en media)", () => {
     const viejos = Array.from({ length: 8 }, (_, i) => g(1, 4, 12.5 + (i % 4) * 0.2, { dia: dia(12.5 + (i % 4)) }));
@@ -323,6 +327,24 @@ describe("decaimiento de la evidencia (v3)", () => {
     expect(de(recientes, 1)!.confianza).not.toBe("baja");
     // el color no cambia por la edad si todos dicen lo mismo
     expect(de(viejos, 1)!.nivel).toBe(4);
+  });
+});
+
+describe("sin ventana (v5): lo viejo cuenta, lo reciente manda", () => {
+  it("con reportes recientes, un historial viejo casi no mueve el color", () => {
+    const viejos = Array.from({ length: 10 }, (_, i) => g(1, 4, 60 + i));
+    const recientes = Array.from({ length: 6 }, (_, i) => g(1, 0, i * 0.5 + 0.1));
+    expect(de([...viejos, ...recientes], 1)!.nivel).toBe(0);
+  });
+  it("un pico de hoy sobre un historial largo sigue siendo un pico (maxDia sobre la evidencia decaída)", () => {
+    // 2 meses de reportes honestos (1 al día) y hoy 20 falsos desde 20 redes: sin decaer el pico sería 25 % (no
+    // saltaría la alarma del 60 %); sobre la evidencia decaída es ~67 %
+    // claves de día propias: el helper `dia` junta todo lo de más de 7 días en el mismo día
+    const historial = Array.from({ length: 60 }, (_, i) => g(1, 1, i + 1, { dia: `hist-${i + 1}` }));
+    const pico = Array.from({ length: 20 }, () => g(1, 4, 0.1, { dia: "hoy" }));
+    const x = de([...historial, ...pico], 1)!;
+    expect(x.maxDia).toBeGreaterThan(PARAMS.confianza.maxDia);
+    expect(x.confianza).toBe("baja");
   });
 });
 

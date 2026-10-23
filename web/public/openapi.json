@@ -2,9 +2,9 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API pública de Agua ZMG",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "summary": "Gravedad del agua por colonia en la Zona Metropolitana de Guadalajara, según reportes de vecinos.",
-    "description": "Datos abiertos y agregados por colonia. NO incluye huellas, comentarios ni ningún dato personal.\n\nLos valores reflejan reportes ciudadanos sin verificar (percepción), no mediciones de laboratorio; no es información oficial ni consejo médico. Que una colonia no tenga score no significa que el agua sea buena: significa que aún no hay reportes.\n\nUna colonia recibe score desde su primer reporte; con pocos reportes la confianza es baja (ver /metodologia).\n\nLímites de colonias: aproximados, derivados del catálogo de colonias del INE (corte dic-2020); no son oficiales.\n\nCambios dentro de v1 (documentados en docs/API.md, «Cambios del contrato»): el 17-oct-2026 `nivel` y `score` pasaron de 1-4 a 0-4 (nivel 0, «limpia»); el 21-oct-2026 `ultimo` pasó de instante (date-time) a día (date, hora de Guadalajara) y `metadata.metodo` dice qué versión del método calculó los datos.",
+    "description": "Datos abiertos y agregados por colonia. NO incluye huellas, comentarios ni ningún dato personal.\n\nLos valores reflejan reportes ciudadanos sin verificar (percepción), no mediciones de laboratorio; no es información oficial ni consejo médico. Que una colonia no tenga score no significa que el agua sea buena: significa que aún no hay reportes.\n\nUna colonia recibe score desde su primer reporte; con pocos reportes la confianza es baja (ver /metodologia).\n\nLímites de colonias: aproximados, derivados del catálogo de colonias del INE (corte dic-2020); no son oficiales.\n\nCambios dentro de v1 (documentados en docs/API.md, «Cambios del contrato»): el 17-oct-2026 `nivel` y `score` pasaron de 1-4 a 0-4 (nivel 0, «limpia»); el 21-oct-2026 `ultimo` pasó de instante (date-time) a día (date, hora de Guadalajara) y `metadata.metodo` dice qué versión del método calculó los datos. El 22-oct-2026 (método v5) los agregados dejaron de tener límite de antigüedad.",
     "license": {
       "name": "ODbL-1.0 (provisional, pendiente de confirmación del equipo)",
       "url": "https://opendatacommons.org/licenses/odbl/1-0/"
@@ -160,7 +160,7 @@
         ],
         "operationId": "obtenerColonia",
         "summary": "Detalle de una colonia",
-        "description": "Agregados de reportes de los últimos 30 días y datos externos (oficiales, académicos, periodísticos o ciudadanos) vinculados a la colonia. Los datos externos NO entran al score; cada uno trae su fuente y URL, y `confianza_vinculo` indica qué tan seguro es que corresponda a esta colonia.",
+        "description": "Agregados de todos los reportes (sin límite de antigüedad desde el método v5), serie diaria completa y datos externos (oficiales, académicos, periodísticos o ciudadanos) vinculados a la colonia. Los datos externos NO entran al score; cada uno trae su fuente y URL, y `confianza_vinculo` indica qué tan seguro es que corresponda a esta colonia.",
         "parameters": [
           {
             "name": "id",
@@ -550,7 +550,7 @@
               "integer",
               "null"
             ],
-            "description": "Reportes contados en la ventana vigente (null si no alcanza el mínimo)"
+            "description": "Todos los reportes contados, sin límite de antigüedad desde el método v5 (null si no alcanza el mínimo)"
           },
           "n_huellas": {
             "type": [
@@ -678,7 +678,7 @@
               },
               "serie": {
                 "type": "array",
-                "description": "Últimos 30 días, por día calendario en hora de Guadalajara. Solo días con reportes.",
+                "description": "Todo el historial (hasta el método v4, 30 días), por día calendario en hora de Guadalajara. Solo días con reportes.",
                 "items": {
                   "type": "object",
                   "properties": {

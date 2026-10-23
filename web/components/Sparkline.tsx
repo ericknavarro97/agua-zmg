@@ -5,27 +5,29 @@ import type { PuntoSerie } from "./tipos";
 const W = 300;
 const H = 96;
 const PAD = { l: 54, r: 8, t: 8, b: 20 };
-const DIAS = 30;
+/** Como mínimo se dibujan 30 días; con más historial, desde el primer reporte (hasta un año en la gráfica). */
+const DIAS_MIN = 30;
+const DIAS_MAX = 365;
+const DIA_MS = 86_400_000;
 
-function claveDia(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${dd}`;
-}
+/** Hoy en Guadalajara (YYYY-MM-DD), el mismo día local que usa el servidor para la serie */
+const hoyGdl = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date());
+const aMs = (dia: string) => Date.parse(`${dia}T00:00:00Z`);
+const aDia = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
 /**
- * Gravedad promedio por día en los últimos 30 días (línea) y número de reportes (barras).
+ * Historial de una colonia: gravedad promedio por día (línea) y número de reportes (barras), desde el primer reporte
+ * (mínimo 30 días). Desde el método v5 ningún reporte deja de contar, así que la gráfica no se corta a 30 días.
  * Accesible: el SVG tiene título y descripción, y hay una tabla con los mismos datos.
  */
 export default function Sparkline({ serie }: { serie: PuntoSerie[] }) {
   const porDia = new Map(serie.map((p) => [p.dia, p]));
-  const hoy = new Date();
+  const hoyMs = aMs(hoyGdl());
+  const primero = serie.length ? Math.min(...serie.map((p) => aMs(p.dia))) : hoyMs;
+  const DIAS = Math.min(DIAS_MAX, Math.max(DIAS_MIN, Math.round((hoyMs - primero) / DIA_MS) + 1));
   const dias: { dia: string; n: number; score: number | null }[] = [];
   for (let i = DIAS - 1; i >= 0; i--) {
-    const d = new Date(hoy);
-    d.setDate(hoy.getDate() - i);
-    const k = claveDia(d);
+    const k = aDia(hoyMs - i * DIA_MS);
     const p = porDia.get(k);
     dias.push({ dia: k, n: p?.n ?? 0, score: p?.score ?? null });
   }
@@ -52,8 +54,8 @@ export default function Sparkline({ serie }: { serie: PuntoSerie[] }) {
 
   const resumen =
     conDatos.length === 0
-      ? "No hay reportes en los últimos 30 días."
-      : `${totalN} reportes en ${conDatos.length} días de los últimos 30. Gravedad promedio más reciente: ${etiquetaNivel(
+      ? `No hay reportes en los últimos ${DIAS} días.`
+      : `${totalN} ${totalN === 1 ? "reporte" : "reportes"} en ${conDatos.length} ${conDatos.length === 1 ? "día" : "días"} de los últimos ${DIAS}. Gravedad promedio más reciente: ${etiquetaNivel(
           nivelDeScore(conDatos[conDatos.length - 1].score),
         )}.`;
 
@@ -65,7 +67,7 @@ export default function Sparkline({ serie }: { serie: PuntoSerie[] }) {
         role="img"
         aria-labelledby="spark-t spark-d"
       >
-        <title id="spark-t">Reportes de los últimos 30 días</title>
+        <title id="spark-t">Historial de reportes: últimos {DIAS} días</title>
         <desc id="spark-d">{resumen}</desc>
         {/* Líneas guía de cada nivel */}
         {GRAVEDADES.map(({ nivel: n, etiqueta }) => (
@@ -106,7 +108,7 @@ export default function Sparkline({ serie }: { serie: PuntoSerie[] }) {
             />
           ) : null,
         )}
-        <text x={PAD.l} y={H - 5} fontSize={9} fill="#52646f">hace 30 días</text>
+        <text x={PAD.l} y={H - 5} fontSize={9} fill="#52646f">hace {DIAS - 1} días</text>
         <text x={W - PAD.r} y={H - 5} textAnchor="end" fontSize={9} fill="#52646f">hoy</text>
       </svg>
       <figcaption className="mt-1 text-xs text-texto-tenue">
@@ -116,7 +118,7 @@ export default function Sparkline({ serie }: { serie: PuntoSerie[] }) {
         <details className="mt-1 text-xs">
           <summary className="cursor-pointer py-1 text-marca underline">Ver los datos en tabla</summary>
           <table className="mt-2 w-full border-collapse text-left">
-            <caption className="sr-only">Reportes por día en los últimos 30 días</caption>
+            <caption className="sr-only">Reportes por día en los últimos {DIAS} días</caption>
             <thead>
               <tr>
                 <th scope="col" className="border-b py-1 pr-2">Día</th>

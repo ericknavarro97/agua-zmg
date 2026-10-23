@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { GET as scores } from "@/app/api/colonias/scores/route";
 import { POST } from "@/app/api/reportes/route";
-import { PARAMS, invalidarCacheScores } from "@/lib/aggregation";
+import { invalidarCacheScores } from "@/lib/aggregation";
 import {
   crearColonia, cuerpoValido, db, ipNueva, json, post, reiniciar, sembrar, sembrarVecinos,
 } from "./helpers";
@@ -137,19 +137,23 @@ describe("mínimo publicable", () => {
     expect(s.confianza).toBe("baja");
   });
 
-  it("reportes fuera de la ventana (más de 14 días) no cuentan", async () => {
+  it("reportes de más de 14 días siguen contando (v5): la colonia no vuelve a gris", async () => {
     const c = await crearColonia();
-    await sembrarVecinos(c, 4, 6, { edadBase: PARAMS.ventanaDias + 1 });
-    expect(await de(c)).toBeUndefined();
+    await sembrarVecinos(c, 4, 6, { edadBase: 30 });
+    const s = (await de(c))!;
+    expect(s.nivel).toBe(4);
+    expect(s.n).toBe(6);
+    expect(s.confianza).toBe("baja");
   });
 
-  it("los reportes viejos no cuentan en n/n_huellas aunque la colonia sí se publique", async () => {
+  it("los reportes viejos cuentan en n/n_huellas, pero el color lo mandan los recientes", async () => {
     const c = await crearColonia();
-    await sembrarVecinos(c, 2, 5, { edadBase: 0 });
-    await sembrarVecinos(c, 2, 5, { edadBase: PARAMS.ventanaDias + 2, prefijo: "viejo" });
+    await sembrarVecinos(c, 1, 5, { edadBase: 0 });
+    await sembrarVecinos(c, 4, 5, { edadBase: 60, prefijo: "viejo" });
     const s = (await de(c))!;
-    expect(s.n).toBe(5);
-    expect(s.n_huellas).toBe(5);
+    expect(s.n).toBe(10);
+    expect(s.n_huellas).toBe(10);
+    expect(s.nivel).toBe(1);
   });
 });
 

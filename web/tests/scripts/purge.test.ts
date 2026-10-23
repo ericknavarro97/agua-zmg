@@ -138,7 +138,7 @@ describe("--dry-run", () => {
 });
 
 describe("validación de argumentos", () => {
-  it("--dias menor que la ventana de cálculo (14) o no entero se rechaza sin tocar datos", async () => {
+  it("--dias menor que 14 o no entero se rechaza sin tocar datos", async () => {
     const id = await completo(dias(40));
     for (const d of ["13", "0", "-5", "abc", "20.5"]) {
       const r = purge([`--dias=${d}`]);

@@ -5,8 +5,11 @@
  *    El reporte conserva gravedad, síntomas y colonia (ya sin identificador).
  *  - comentarios de más de N días -> NULL (texto libre: el riesgo de datos personales no desaparece con el hash).
  *  - rate_limits con más de 2 días -> borrados.
- * N debe ser >= la ventana de cálculo (14 días), si no se perdería evidencia que aún cuenta en los scores.
- * Pensado para correr a diario (cron). Es idempotente y por lotes: no bloquea la tabla.
+ * N debe ser >= 14 días: sin red_hash/red_sem, cada reporte cuenta como su propia red y pierde los topes por red
+ * (lib/aggregation.ts). Desde v5 un reporte nunca deja de contar, pero a los 14 días ya pesa 1/4: quitarle los topes
+ * antes dejaría que una ráfaga reciente recuperara peso.
+ * NO está programado: desde el 21-oct-2026 se conserva todo (aviso de privacidad v0.2; docs/OPERACION.md §4).
+ * Es idempotente y por lotes: no bloquea la tabla.
  */
 import { Pool } from "pg";
 
@@ -21,7 +24,7 @@ async function main() {
   const seco = process.argv.includes("--dry-run");
   const dias = Number(arg("dias") ?? 30);
   if (!Number.isInteger(dias) || dias < 14) {
-    throw new Error("--dias debe ser un entero >= 14 (la ventana de cálculo de los scores)");
+    throw new Error("--dias debe ser un entero >= 14 (antes, anonimizar quitaría los topes por red a reportes que aún pesan mucho)");
   }
   if (!process.env.DATABASE_URL) throw new Error("Falta DATABASE_URL");
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });

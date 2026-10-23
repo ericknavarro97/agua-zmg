@@ -36,7 +36,7 @@ La licencia viaja con los datos: cabecera `Link: <…>; rel="license"`, cabecera
 | `score` | Gravedad promedio ponderada de 0 (limpia) a 4 (crítica). Que se vea limpia **no** significa que sea segura para beber. `null` si la colonia aún no alcanza el mínimo publicable. |
 | `nivel` | `score` redondeado a entero 0-4 (el color del mapa): 0 limpia, 1 leve, 2 moderada, 3 grave, 4 crítica. Hasta el método v2 el rango era 1-4; el 0 se agregó en v3 (17-oct-2026). `metadata.metodo` dice qué método calculó los datos. |
 | `confianza` | `baja`, `media` o `alta`: qué tan respaldado está el score (cuánta evidencia efectiva, en cuántos días y desde cuántas redes distintas). Con `baja` el color puede cambiar con pocos reportes más. Se explica en `/metodologia`. |
-| `n` | Reportes contados en la ventana vigente (14 días). `null` si la colonia aún no alcanza el mínimo publicable (desde el método v2 basta un reporte completo, así que sí se publican conteos de 1). Los reportes «Hoy no llegó agua» no tienen gravedad y no se cuentan aquí. |
+| `n` | Todos los reportes contados de la colonia, sin límite de antigüedad (desde el método v5; hasta v4, solo los de 14 días). `null` si la colonia aún no alcanza el mínimo publicable (desde el método v2 basta un reporte completo, así que sí se publican conteos de 1). Los reportes «Hoy no llegó agua» no tienen gravedad y no se cuentan aquí. |
 | `n_huellas` | Huellas diarias distintas (solo un conteo). La huella rota cada día: una misma persona que reporta varios días cuenta una vez por día, así que no equivale a personas ni a dispositivos. No se entregan identificadores. |
 | `ultimo` | Día (`YYYY-MM-DD`, hora de Guadalajara) del reporte más reciente contado. Solo el día: con pocos reportes, la hora señalaría el momento exacto en que alguien reportó. |
 | `fuente_geom` | Procedencia del polígono (p. ej. `ine_colonias`). |
@@ -111,7 +111,7 @@ Detalle de una colonia.
 }
 ```
 
-- `reportes.serie`: últimos 30 días, un punto por día con reportes: `n` (conteo crudo) y `score` (media recortada del día, 0 a 4, con los mismos topes por red que el score general y sin decaimiento).
+- `reportes.serie`: todo el historial (hasta el método v4, los últimos 30 días), un punto por día con reportes: `n` (conteo crudo) y `score` (media recortada del día, 0 a 4, con los mismos topes por red que el score general y sin decaimiento).
 - `oficial`: datos externos (oficiales, académicos, periodísticos o ciudadanos) vinculados a la colonia. **No entran al score.** Cada uno trae `fuente` y `url`; `confianza_vinculo` (`alta`/`media`/`baja`) indica qué tan seguro es que el dato corresponda a *esta* colonia (la vinculación es por nombre). `notas` (texto o `null`) lleva las advertencias de cada dato —histórico fuera de ventana, tira reactiva semicuantitativa que no sustituye al laboratorio, listado administrativo que no es una medición—: **muéstralas junto al valor**; un `valor: null` sin leer `notas` es ambiguo. Muchas filas son listados administrativos (p. ej. colonias incluidas en un programa de descuento), no mediciones: lee `parametro`, `valor` y la fuente antes de interpretarlas. Los vínculos `baja` (coincidencia dudosa de nombre) no se incluyen aquí; `/api/oficial` solo los devuelve con `?min_vinculo=baja`. Origen y límites en [`data/oficial/FUENTES.md`](../data/oficial/FUENTES.md).
 - `id` inexistente: `404`. `id` no numérico: `400`.
 
@@ -150,11 +150,12 @@ Responde `503` con `"ok": false, "db": false` si la base de datos no contesta (v
 - Las listas se guardan 60 s en memoria por instancia y los filtros (`municipio`, `con_datos`) se aplican sobre esa copia: variar los parámetros no multiplica las consultas a la base. El cuerpo final, su `ETag` y sus versiones comprimidas se calculan una vez por minuto y combinación de parámetros (máximo 12 combinaciones en memoria).
 - Si la base falla, se sirve la última copia en memoria (hasta 1 h) y, detrás de un CDN, `stale-if-error`.
 - Cambiar la licencia: variables `DATOS_LICENCIA_NOMBRE` y `DATOS_LICENCIA_URL` (ver `web/.env.example`). También hay que actualizar `info.license` en `openapi.json`.
-- Cambios incompatibles de formato = nueva versión de ruta (`/api/v2`), no modificar `/api/v1`. Las dos excepciones que ya ocurrieron están en «Cambios del contrato»; cualquier otra debe registrarse ahí, subir `info.version` en `openapi.json` y reflejarse en `metadata.metodo` si cambia el cálculo.
+- Cambios incompatibles de formato = nueva versión de ruta (`/api/v2`), no modificar `/api/v1`. Las excepciones que ya ocurrieron están en «Cambios del contrato»; cualquier otra debe registrarse ahí, subir `info.version` en `openapi.json` y reflejarse en `metadata.metodo` si cambia el cálculo.
 
 ## Cambios del contrato
 
 | Fecha | Cambio | Por qué no hubo `/api/v2` |
 |---|---|---|
+| 2026-10-22 | Método v5: `n`, `n_huellas`, `score`, `nivel` y `confianza` cuentan todos los reportes sin límite de antigüedad (antes, 14 días), así que una colonia publicada ya no vuelve a `null`. `reportes.serie` trae todo el historial (antes, 30 días). OpenAPI 1.2.0. | El formato no cambia; cambia qué abarcan los valores. `metadata.metodo` lo indica. |
 | 2026-10-21 | `ultimo` pasa de instante ISO 8601 (`2026-10-08T17:42:10.000Z`) a día (`2026-10-08`), también la columna `ultimo_reporte` del CSV. Nuevo campo `metadata.metodo`. El CSV empieza con BOM UTF-8. OpenAPI 1.1.0. | Privacidad: con un solo reporte, la hora identificaba el momento exacto en que alguien reportó. |
 | 2026-10-17 | `nivel` y `score` pasan de 1-4 a 0-4 (nivel 0, «limpia»). | Cambio de método (v3); los valores 1-4 conservan su significado. Un cliente que indexe colores con `nivel - 1` debe ajustarse. |

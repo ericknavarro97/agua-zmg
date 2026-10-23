@@ -132,14 +132,14 @@ La lista completa y comentada está en [`web/.env.example`](web/.env.example). L
 
 ## Cómo se calcula la gravedad
 
-Cada reporte trae una gravedad de 0 (limpia) a 4 (crítica). El color de una colonia (`nivel`) es su **score** redondeado, calculado por el método **v4** (`web/lib/aggregation.ts`, parámetros versionados; cambiar uno exige subir la versión):
+Cada reporte trae una gravedad de 0 (limpia) a 4 (crítica). El color de una colonia (`nivel`) es su **score** redondeado, calculado por el método **v5** (`web/lib/aggregation.ts`, parámetros versionados; cambiar uno exige subir la versión):
 
-1. **Qué cuenta:** solo reportes `visible`, no sospechosos y con gravedad, de los últimos 14 días (los de «Hoy no llegó agua» se cuentan aparte, en el panel de la colonia). Los reportes con el campo trampa lleno o enviados instantáneamente se guardan marcados y **no cuentan** (el bot recibe la misma respuesta que un usuario normal).
+1. **Qué cuenta:** todos los reportes `visible`, no sospechosos y con gravedad, **sin límite de antigüedad**: ninguno deja de contar y una colonia reportada nunca vuelve a gris (desde v5; hasta v4 había una ventana de 14 días). Los de «Hoy no llegó agua» se cuentan aparte, en el panel de la colonia. Los reportes con el campo trampa lleno o enviados instantáneamente se guardan marcados y **no cuentan** (el bot recibe la misma respuesta que un usuario normal).
 2. **Peso por reporte:** limitado según cuántos reportes llegan de la misma red en esa colonia el mismo día y la misma semana (nadie puede pesar más por insistir), reducido si la red concentra muchos reportes o si el formulario se envió demasiado rápido (o sin declarar cuánto tardó).
-3. **Decaimiento:** cada reporte pierde la mitad de su peso cada 7 días, tanto en el promedio como en la evidencia que alimenta la confianza.
+3. **Decaimiento:** cada reporte pierde la mitad de su peso cada 7 días (nunca llega a cero), tanto en el promedio como en la evidencia que alimenta la confianza. Con reportes nuevos, lo viejo casi no mueve el color; una colonia con solo reportes viejos conserva su color con confianza baja.
 4. **Media recortada:** se descarta el 20 % del peso en cada extremo de la escala, para que unos pocos reportes extremos no muevan el color. El score **es** esta media (desde v3 no hay contracción hacia un prior: en v2 un solo reporte «leve» salía «moderada»).
-5. **Publicable:** basta un reporte completo (peso sin decaer ≥ 1; uno enviado en menos de 5 s pesa la mitad). Con pocos reportes el color sale tenue y con confianza baja. Sin reportes, la colonia sale en gris.
-6. **Confianza (baja, media, alta):** depende de la evidencia efectiva (ya decaída), de en cuántos días distintos y desde cuántas redes distintas llegó, de que ningún día concentre más del 60 % y de que el promedio y la mediana no discrepen. Con confianza baja el color puede cambiar con pocos reportes más.
+5. **Publicable:** basta un reporte completo (peso sin decaer ≥ 1; uno enviado en menos de 5 s pesa la mitad). Con pocos reportes el color sale tenue y con confianza baja. Solo sale en gris una colonia que nunca ha tenido reportes.
+6. **Confianza (baja, media, alta):** depende de la evidencia efectiva (ya decaída), de en cuántos días distintos y desde cuántas redes distintas llegó, de que ningún día concentre más del 60 % de la evidencia ya decaída y de que el promedio y la mediana no discrepen. Con confianza baja el color puede cambiar con pocos reportes más.
 
 Los umbrales son valores iniciales razonados, **no medidos**: se recalibrarán con datos reales y una semana en modo sombra ([`docs/research/anti-abuso.md`](docs/research/anti-abuso.md) §6). **Límite conocido:** quien aparente ser muchos vecinos distintos (muchas redes, tiempos humanos, varios días) no se distingue de vecinos reales; por eso existe moderación humana y transparencia del método.
 

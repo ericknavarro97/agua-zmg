@@ -67,7 +67,7 @@ describe("agregar: confianza", () => {
   it("dos días y 8 reportes: media", () => {
     expect(uno(vecinos(1, 3, 8, 2)).confianza).toBe("media");
   });
-  it("reportes fuera de la ventana no llegan al agregador (la consulta los excluye)", () => {
+  it("con poca evidencia efectiva (p. ej. solo reportes viejos) la confianza es baja", () => {
     // confianzaDe es pura sobre estadísticas; con nEff < mediaNEff es baja
     expect(confianzaDe({ nEff: PARAMS.confianza.mediaNEff - 0.1, diasCorrob: 3, redesSem: 9, maxDia: 0.3, recortada: 3, mediana: 3 })).toBe("baja");
   });

@@ -1,5 +1,5 @@
 import { pool } from "@/lib/db";
-import { PARAMS, cargarSerie, cargarSinAgua, scoresConCache } from "@/lib/aggregation";
+import { cargarSerie, cargarSinAgua, scoresConCache } from "@/lib/aggregation";
 import { jsonConEtag } from "@/lib/oficial-http";
 import { type FilaOficial, aContratoOficial } from "@/lib/oficial";
 
@@ -47,21 +47,21 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   // n, huellas y último salen del MISMO cálculo que el nivel (antes se volvían a consultar aparte y podían no
   // coincidir con el nivel en caché). La serie usa los mismos topes por red que el score (lib/aggregation.ts).
   const [serie, sinAgua, comentarios] = await Promise.all([
-    cargarSerie(pool, id, 30),
+    // todo el historial (sin límite de antigüedad, como el nivel desde v5)
+    cargarSerie(pool, id),
     // «Hoy no llegó agua»: se publica aparte y no entra en el nivel
     cargarSinAgua(pool, id),
     // Comentarios que su autor aceptó mostrar (el formulario lo avisa). Solo el día, sin hora ni identificadores.
-    // Un reporte oculto o en revisión también retira su comentario. Misma ventana que el nivel. gravedad es null en
-    // los de «Hoy no llegó agua».
+    // Un reporte oculto o en revisión también retira su comentario. Sin límite de antigüedad (como el nivel): los 20
+    // más recientes. gravedad es null en los de «Hoy no llegó agua».
     pool.query(
       `SELECT to_char((creado_en AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS dia,
               gravedad::int AS gravedad, comentario AS texto
          FROM reportes
         WHERE colonia_id = $1 AND estado = 'visible' AND NOT sospechoso
           AND comentario IS NOT NULL AND comentario_publico
-          AND creado_en > now() - make_interval(days => $2::int)
         ORDER BY creado_en DESC LIMIT 20`,
-      [id, PARAMS.ventanaDias],
+      [id],
     ),
   ]);
 

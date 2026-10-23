@@ -130,7 +130,7 @@ Vercel + Neon: Neon conserva historial para restaurar (6 h en el plan gratis; ha
 
 **Política vigente (decisión del 2026-10-21, aviso de privacidad v0.2):** se conserva todo (reportes, comentarios e identificadores) como registro histórico de la comunidad. `pnpm purge` **no** está programado a propósito, y el servicio `retencion` de `docker-compose.prod.yml` solo arranca con `--profile retencion`. Lo que sigue describe la herramienta por si la política cambia; antes de programarla, cambia el aviso de privacidad.
 
-Principio de diseño (`research/anti-abuso.md` §9): la IP y el *User-Agent* completo **nunca** se guardan. Lo que se guarda por reporte son identificadores HMAC (huella diaria, red diaria, red semanal, familia del navegador, hash del comentario) y, si el vecino lo escribió, un comentario ya depurado de teléfonos, correos y enlaces. Esos identificadores solo sirven para limitar abuso dentro de la ventana de cálculo (14 días).
+Principio de diseño (`research/anti-abuso.md` §9): la IP y el *User-Agent* completo **nunca** se guardan. Lo que se guarda por reporte son identificadores HMAC (huella diaria, red diaria, red semanal, familia del navegador, hash del comentario) y, si el vecino lo escribió, un comentario ya depurado de teléfonos, correos y enlaces. Esos identificadores sirven para limitar abuso: con ellos se aplican los topes por red a cada reporte, que desde el método v5 cuenta para siempre (con peso decreciente).
 
 `web/scripts/purge.ts` (`pnpm purge`, ya definido en `web/package.json`; sin `.env.local` ejecuta `pnpm exec tsx scripts/purge.ts` con `DATABASE_URL` en el entorno) hace la retención. Por defecto, a los **30 días** (`--dias=N`, mínimo 14 para no perder evidencia que aún cuenta en los scores):
 

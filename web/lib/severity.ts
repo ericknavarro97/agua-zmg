@@ -29,8 +29,10 @@ export const SINTOMAS = [
 export const SINTOMA_SIN_AGUA: (typeof SINTOMAS)[number] = "Sin agua / baja presión";
 
 export const SIN_DATOS_COLOR = "#d5dde7";
-/** Ventana en días y vida media del peso de cada reporte */
-export const VENTANA_DIAS = 14;
+/**
+ * Vida media del peso de cada reporte: pierde la mitad cada 7 días. Desde el método v5 no hay ventana: un reporte
+ * nunca deja de contar, solo pesa menos (hasta v4 se descartaban los de más de 14 días).
+ */
 export const VIDA_MEDIA_DIAS = 7;
 
 export function colorParaScore(score: number | null | undefined): string {

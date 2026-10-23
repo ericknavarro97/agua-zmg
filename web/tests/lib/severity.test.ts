@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PARAMS } from "../../lib/aggregation";
 import {
-  GRAVEDADES, SIN_DATOS_COLOR, SINTOMAS, VENTANA_DIAS, VIDA_MEDIA_DIAS, colorParaScore,
+  GRAVEDADES, SIN_DATOS_COLOR, SINTOMAS, VIDA_MEDIA_DIAS, colorParaScore,
 } from "../../lib/severity";
 
 describe("GRAVEDADES", () => {
@@ -62,10 +62,9 @@ describe("colorParaScore", () => {
   });
 });
 
-describe("constantes de ventana", () => {
-  it("la agregación usa la misma ventana y vida media", () => {
-    expect(PARAMS.ventanaDias).toBe(VENTANA_DIAS);
+describe("vida media", () => {
+  it("la agregación usa la misma vida media y ya no tiene ventana (v5)", () => {
     expect(PARAMS.vidaMediaDias).toBe(VIDA_MEDIA_DIAS);
-    expect(VIDA_MEDIA_DIAS).toBeLessThan(VENTANA_DIAS);
+    expect(PARAMS).not.toHaveProperty("ventanaDias");
   });
 });

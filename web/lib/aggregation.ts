@@ -1,12 +1,14 @@
 /**
- * Agregación robusta de reportes ciudadanos -> score por colonia (método "v4").
+ * Agregación robusta de reportes ciudadanos -> score por colonia (método "v5").
  * Ver docs/research/anti-abuso.md §6. El cálculo es una función pura (`agregar`) que se prueba sin base;
  * el SQL solo prepara grupos compactos (colonia, día, red, gravedad) para no traer cada reporte.
  * Escala: 0 (limpia) a 4 (crítica). Se promedia como escala ordinal: una colonia con vecinos que dicen
  * «limpia» y otros que dicen «grave» queda en medio, y la discrepancia baja la confianza (paso 6).
  *
- * Qué cuenta: SOLO reportes con estado='visible' y sospechoso=false, de los últimos VENTANA_DIAS, y con gravedad
- * (los de «Hoy no llegó agua» tienen gravedad NULL: se cuentan aparte, en `cargarSinAgua`, y no mueven el nivel).
+ * Qué cuenta: SOLO reportes con estado='visible' y sospechoso=false y con gravedad (los de «Hoy no llegó agua»
+ * tienen gravedad NULL: se cuentan aparte, en `cargarSinAgua`, y no mueven el nivel). SIN límite de antigüedad
+ * desde v5: un reporte nunca deja de contar y una colonia reportada nunca vuelve a gris; lo viejo solo pesa menos
+ * (paso 2) y baja la confianza (paso 4). Hasta v4 había una ventana de 14 días.
  *
  * Receta (todos los parámetros están en PARAMS; cambiar uno exige subir METODO):
  *  1. Peso de cada reporte x = min(1, kDia/n_dia, kSem/n_sem) * f_concentrada * f_rapido
@@ -15,26 +17,26 @@
  *     - f_concentrada: una red con >= 6 reportes en un día en la misma colonia pesa x0.25.
  *     - f_rapido: formulario enviado en < 5 s pesa x0.5 (el cliente declara el tiempo: señal débil). Un envío SIN
  *       tiempo declarado (el formulario siempre lo manda; un script puede omitirlo) también pesa x0.5.
- *  2. Decaimiento: w = x * 2^(-edad_dias / vida_media).
+ *  2. Decaimiento: w = x * 2^(-edad_dias / vida_media). Con reportes nuevos, los viejos casi no mueven el color;
+ *     si una colonia solo tiene reportes viejos, el color es el de esos reportes (la media es relativa al peso).
  *  3. Media recortada por MASA de peso: se descarta el 20 % del peso en cada extremo de la escala 0-4.
  *     El score ES esta media: desde v3 no se contrae hacia un prior (en v2 un solo reporte «leve» se pintaba
  *     «moderada» porque el prior pesaba más que el vecino). Con pocos datos lo que cambia es la confianza.
  *  4. Evidencia: n_eff = suma de w (YA decaída). Un reporte de hace 7 días aporta 0.5: la evidencia vieja
  *     baja la confianza sola, aunque todos los reportes tengan la misma edad (en v2 n_eff no decaía).
  *  5. Publicable: x sin decaer >= 1 (un reporte completo; uno enviado en < 5 s pesa 0.5 y por sí solo no
- *     alcanza). Así un reporte publica toda la ventana, pero con confianza baja.
+ *     alcanza). Una vez publicada, la colonia sigue publicada; sin reportes nuevos, con confianza baja.
  *  6. Confianza: baja / media / alta con los umbrales de PARAMS.confianza (sobre n_eff decaído).
  *
  * LÍMITE CONOCIDO: quien aparente ser muchos vecinos distintos (muchas redes, tiempos humanos, varios
  * días) no se distingue de vecinos reales. Ver scripts/simular-ataques.ts, que lo mide.
  */
 import type { Pool } from "pg";
-import { VENTANA_DIAS, VIDA_MEDIA_DIAS } from "./severity";
+import { VIDA_MEDIA_DIAS } from "./severity";
 
-export const METODO = "v4";
+export const METODO = "v5";
 
 export const PARAMS = {
-  ventanaDias: VENTANA_DIAS,
   vidaMediaDias: VIDA_MEDIA_DIAS,
   /** Fracción del PESO que se recorta en cada extremo. 0.2 tolera ~1 de cada 5 reportes falsos extremos. */
   alfa: 0.2,
@@ -63,7 +65,10 @@ export const PARAMS = {
     /** Redes semanales distintas mínimas. */
     mediaRedes: 4,
     altaRedes: 8,
-    /** Si un día aporta más de esta fracción de la evidencia, la confianza es baja (pico no corroborado). */
+    /**
+     * Si un día aporta más de esta fracción de la evidencia YA decaída, la confianza es baja (pico no corroborado).
+     * Decaída desde v5: sin ventana, un historial largo diluiría un pico de hoy si se midiera sin decaer.
+     */
     maxDia: 0.6,
     /** Si la media recortada y la mediana difieren más, la distribución es bimodal: no pasa de "media". */
     discrepancia: 0.75,
@@ -175,6 +180,7 @@ function parcial(coloniaId: number, gs: Grupo[], p = PARAMS): Parcial | null {
   const xs = pesos(gs, p);
   const bins = [0, 0, 0, 0, 0];
   const porDia = new Map<string, number>();
+  const porDiaEff = new Map<string, number>();
   const redes = new Set<string>();
   let nEff = 0;
   let nBruta = 0;
@@ -183,6 +189,7 @@ function parcial(coloniaId: number, gs: Grupo[], p = PARAMS): Parcial | null {
     const w = x * Math.pow(2, -g.edadDias / p.vidaMediaDias);
     bins[g.gravedad] += w;
     porDia.set(g.dia, (porDia.get(g.dia) ?? 0) + x);
+    porDiaEff.set(g.dia, (porDiaEff.get(g.dia) ?? 0) + w);
     redes.add(g.redSem);
     nEff += w;
     nBruta += x;
@@ -190,6 +197,8 @@ function parcial(coloniaId: number, gs: Grupo[], p = PARAMS): Parcial | null {
   const r = recortada(bins, p.alfa);
   if (!r) return null;
   const dias = [...porDia.values()];
+  let maxDiaEff = 0;
+  for (const v of porDiaEff.values()) if (v > maxDiaEff) maxDiaEff = v;
   return {
     coloniaId,
     recortada: r.media,
@@ -198,8 +207,9 @@ function parcial(coloniaId: number, gs: Grupo[], p = PARAMS): Parcial | null {
     nBruta,
     diasCorrob: dias.filter((v) => v >= p.confianza.diaCorrob).length,
     redesSem: redes.size,
-    // reparto por día SIN decaer: mide si la evidencia llegó toda junta, no qué tan vieja es
-    maxDia: nBruta > 0 ? Math.max(...dias) / nBruta : 0,
+    // reparto por día de la evidencia DECAÍDA (v5): sin ventana, medirlo sin decaer dejaría que meses de historial
+    // diluyan un pico de hoy. Un día que corrobora (diasCorrob) se sigue midiendo sin decaer: ese día sí ocurrió.
+    maxDia: nEff > 0 ? maxDiaEff / nEff : 0,
   };
 }
 
@@ -301,14 +311,15 @@ export function paraContrato(s: ScoreDetallado) {
 // --- Carga desde Postgres ---------------------------------------------------------------------
 
 /**
- * Lee los reportes contables de la ventana, ya agrupados. Las filas sin red (anteriores a la migración 002) cuentan cada una como su propia red: no se penalizan por no tener red.
- * El día se calcula en hora de Guadalajara a partir de creado_en.
+ * Lee los reportes contables, ya agrupados: todos, sin límite de antigüedad (v5); `desdeDias` solo acota la serie
+ * de una gráfica. Las filas sin red (anteriores a la migración 002) cuentan cada una como su propia red: no se
+ * penalizan por no tener red. El día se calcula en hora de Guadalajara a partir de creado_en.
  */
 export async function cargarGrupos(
   pool: Pool,
   ahora = new Date(),
   p = PARAMS,
-  o: { coloniaId?: number; ventanaDias?: number } = {},
+  o: { coloniaId?: number; desdeDias?: number } = {},
 ): Promise<Grupo[]> {
   const { rows } = await pool.query(
     `SELECT r.colonia_id,
@@ -321,11 +332,11 @@ export async function cargarGrupos(
             avg(extract(epoch FROM r.creado_en))::float8 AS epoch_medio
        FROM reportes r
       WHERE r.estado = 'visible' AND NOT r.sospechoso AND r.gravedad IS NOT NULL
-        AND r.creado_en > $1::timestamptz - make_interval(days => $2::int)
+        AND ($2::int IS NULL OR r.creado_en > $1::timestamptz - make_interval(days => $2::int))
         AND r.creado_en <= $1::timestamptz
         AND ($4::int IS NULL OR r.colonia_id = $4::int)
       GROUP BY 1, 2, 3, 4, 5`,
-    [ahora.toISOString(), o.ventanaDias ?? p.ventanaDias, p.rapidoMs, o.coloniaId ?? null],
+    [ahora.toISOString(), o.desdeDias ?? null, p.rapidoMs, o.coloniaId ?? null],
   );
   const ahoraS = ahora.getTime() / 1000;
   return rows.map((r) => ({
@@ -340,26 +351,25 @@ export async function cargarGrupos(
   }));
 }
 
-export async function cargarResumen(pool: Pool, ahora = new Date(), p = PARAMS): Promise<Map<number, ResumenColonia>> {
+/** Conteos por colonia de TODOS los reportes contables (sin límite de antigüedad desde v5). */
+export async function cargarResumen(pool: Pool, ahora = new Date()): Promise<Map<number, ResumenColonia>> {
   const { rows } = await pool.query(
     `SELECT colonia_id, count(*)::int AS n,
             count(DISTINCT huella)::int AS n_huellas,
             to_char((max(creado_en) AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS ultimo_dia
        FROM reportes
       WHERE estado = 'visible' AND NOT sospechoso AND gravedad IS NOT NULL
-        AND creado_en > $1::timestamptz - make_interval(days => $2::int)
         AND creado_en <= $1::timestamptz
       GROUP BY colonia_id`,
-    [ahora.toISOString(), p.ventanaDias],
+    [ahora.toISOString()],
   );
   // Las filas sin huella (anonimizadas) cuentan como una huella cada una
   const sinHuella = await pool.query(
     `SELECT colonia_id, count(*)::int AS n FROM reportes
       WHERE estado = 'visible' AND NOT sospechoso AND gravedad IS NOT NULL AND huella IS NULL
-        AND creado_en > $1::timestamptz - make_interval(days => $2::int)
         AND creado_en <= $1::timestamptz
       GROUP BY colonia_id`,
-    [ahora.toISOString(), p.ventanaDias],
+    [ahora.toISOString()],
   );
   const extra = new Map<number, number>(sinHuella.rows.map((r) => [r.colonia_id, r.n]));
   return new Map(
@@ -371,30 +381,28 @@ export async function cargarResumen(pool: Pool, ahora = new Date(), p = PARAMS):
 }
 
 /**
- * Reportes de «Hoy no llegó agua» (gravedad NULL) de una colonia en la ventana del nivel, con el mismo filtro de
- * visibilidad. Se publica el conteo y las personas distintas; no entra en el nivel.
+ * Reportes de «Hoy no llegó agua» (gravedad NULL) de una colonia, todos (sin límite de antigüedad, como el nivel)
+ * y con el mismo filtro de visibilidad. Se publica el conteo y el día del último; no entra en el nivel.
  */
 export async function cargarSinAgua(
   pool: Pool,
   coloniaId: number,
   ahora = new Date(),
-  p = PARAMS,
 ): Promise<{ n: number; ultimo: string | null }> {
   const { rows } = await pool.query(
     `SELECT count(*)::int AS n,
             to_char((max(creado_en) AT TIME ZONE 'America/Mexico_City')::date, 'YYYY-MM-DD') AS ultimo
        FROM reportes
-      WHERE colonia_id = $3 AND estado = 'visible' AND NOT sospechoso AND gravedad IS NULL
-        AND creado_en > $1::timestamptz - make_interval(days => $2::int)
+      WHERE colonia_id = $2 AND estado = 'visible' AND NOT sospechoso AND gravedad IS NULL
         AND creado_en <= $1::timestamptz`,
-    [ahora.toISOString(), p.ventanaDias, coloniaId],
+    [ahora.toISOString(), coloniaId],
   );
   return { n: rows[0]?.n ?? 0, ultimo: rows[0]?.ultimo ?? null };
 }
 
-/** Serie de los últimos `dias` días de una colonia (ver `serieDiaria`). */
-export async function cargarSerie(pool: Pool, coloniaId: number, dias = 30, ahora = new Date()): Promise<PuntoSerie[]> {
-  return serieDiaria(await cargarGrupos(pool, ahora, PARAMS, { coloniaId, ventanaDias: dias }));
+/** Serie diaria de una colonia (ver `serieDiaria`): todo el historial, o los últimos `dias` días si se pide. */
+export async function cargarSerie(pool: Pool, coloniaId: number, dias?: number, ahora = new Date()): Promise<PuntoSerie[]> {
+  return serieDiaria(await cargarGrupos(pool, ahora, PARAMS, { coloniaId, desdeDias: dias }));
 }
 
 export async function calcularScores(pool: Pool, ahora = new Date()): Promise<ScoreDetallado[]> {

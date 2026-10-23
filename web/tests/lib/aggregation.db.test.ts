@@ -45,12 +45,15 @@ describe("qué reportes cuentan", () => {
     expect(r.size).toBe(0);
     expect(await cargarGrupos(bd.pool)).toEqual([]);
   });
-  it("fuera de la ventana de 14 días no cuentan; dentro sí", async () => {
+  it("sin límite de antigüedad (v5): reportes de hace meses siguen contando y publicando la colonia", async () => {
     const c = await insertarColonia(bd.pool, "Lomas");
-    await vecinos(c, 4, { hace_horas: PARAMS.ventanaDias * 24 + 5 });
-    expect(await calcularScores(bd.pool)).toEqual([]);
+    await vecinos(c, 4, { hace_horas: 24 * 90 });
+    const [viejo] = await calcularScores(bd.pool);
+    expect(viejo.n).toBe(4);
+    expect(viejo.nivel).toBe(3);
+    expect(viejo.confianza).toBe("baja");
     await vecinos(c, 4, { hace_horas: 24 * 5 });
-    expect((await calcularScores(bd.pool))[0].n).toBe(4);
+    expect((await calcularScores(bd.pool))[0].n).toBe(8);
   });
   it("pocas huellas distintas: se publica igual, con las huellas contadas bien", async () => {
     const c = await insertarColonia(bd.pool, "Lomas");
@@ -94,15 +97,15 @@ describe("qué reportes cuentan", () => {
     const c = await insertarColonia(bd.pool, "Lomas");
     await vecinos(c, 2, { gravedad: 3 });
     for (let i = 0; i < 3; i++) await insertarReporte(bd.pool, { colonia_id: c, gravedad: null, hace_horas: 2 + i });
-    // una fuera de la ventana y una oculta no cuentan
-    await insertarReporte(bd.pool, { colonia_id: c, gravedad: null, hace_horas: 24 * (PARAMS.ventanaDias + 1) });
+    // una vieja sí cuenta (sin límite de antigüedad); una oculta no
+    await insertarReporte(bd.pool, { colonia_id: c, gravedad: null, hace_horas: 24 * 40 });
     await insertarReporte(bd.pool, { colonia_id: c, gravedad: null, hace_horas: 1, estado: "oculto" });
     expect((await cargarGrupos(bd.pool)).every((g) => g.gravedad !== null)).toBe(true);
     expect((await cargarResumen(bd.pool)).get(c)!.n).toBe(2);
     const [s] = await calcularScores(bd.pool);
     expect(s.nivel).toBe(3);
     const sinAgua = await cargarSinAgua(bd.pool, c);
-    expect(sinAgua.n).toBe(3);
+    expect(sinAgua.n).toBe(4);
     expect(sinAgua.ultimo).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
   it("una colonia con solo reportes «sin agua» no se publica (no hay nada que pintar)", async () => {

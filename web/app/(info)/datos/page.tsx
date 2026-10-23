@@ -116,7 +116,7 @@ export default function Datos() {
           </tr>
           <tr>
             <td><code>GET /api/v1/colonias/&#123;id&#125;</code></td>
-            <td>Detalle de una colonia: serie de 30 días y datos oficiales vinculados (separados del nivel).</td>
+            <td>Detalle de una colonia: serie diaria de todo su historial y datos oficiales vinculados (separados del nivel).</td>
           </tr>
           <tr>
             <td><code>GET /api/v1/resumen.csv</code></td>
@@ -146,7 +146,7 @@ export default function Datos() {
           <tr><td><code>score</code></td><td>Gravedad promedio ponderada de 0 (limpia) a 4 (crítica). Vacío si aún no hay suficientes reportes.</td></tr>
           <tr><td><code>nivel</code></td><td>El <code>score</code> redondeado a un entero de 0 (limpia) a 4 (crítica), el color del mapa.</td></tr>
           <tr><td><code>confianza</code></td><td><code>baja</code>, <code>media</code> o <code>alta</code>: qué tan respaldado está el nivel. Ver <Link href="/metodologia#confianza">metodología</Link>.</td></tr>
-          <tr><td><code>n</code></td><td>Reportes contados en la ventana vigente (14 días).</td></tr>
+          <tr><td><code>n</code></td><td>Todos los reportes contados de la colonia (sin límite de antigüedad; los recientes pesan más en el nivel).</td></tr>
           <tr><td><code>n_huellas</code></td><td>Huellas diarias distintas (solo un conteo). La huella rota cada día: una misma persona que reporta varios días cuenta una vez por día, así que no equivale a personas ni a dispositivos.</td></tr>
           <tr><td><code>ultimo</code></td><td>Día (hora de Guadalajara) del reporte más reciente contado. Solo el día, nunca la hora.</td></tr>
           <tr><td><code>fuente_geom</code></td><td>Procedencia del polígono de la colonia.</td></tr>

@@ -106,7 +106,7 @@ export async function coloniasResumen(): Promise<(ConFiltro & { fila: FilaResume
   });
 }
 
-/** Detalle de una colonia: agregados de reportes (30 días) + datos externos vinculados. */
+/** Detalle de una colonia: agregados de todos sus reportes, la serie diaria completa y los datos externos vinculados. */
 export async function coloniaDetalle(id: number) {
   const { rows } = await pool.query(
     `SELECT id, nombre, municipio, fuente_geom FROM colonias WHERE id = $1`,
@@ -118,7 +118,7 @@ export async function coloniaDetalle(id: number) {
 
   const [serie, oficial] = await Promise.all([
     // Misma serie que el mapa (/api/colonias/[id]): mismos topes por red que el score, con cualquier cantidad de reportes
-    cargarSerie(pool, id, 30),
+    cargarSerie(pool, id),
     // Datos externos: NO entran al score; cada fila lleva su fuente y URL
     pool.query(
       // Solo vínculos 'alta' y 'media' (uno 'baja' es una coincidencia dudosa de nombre) y sin filas repetidas de la misma fuente

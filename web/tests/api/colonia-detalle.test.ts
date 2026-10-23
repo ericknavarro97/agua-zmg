@@ -133,21 +133,26 @@ describe("GET /api/colonias/[id]: contrato", () => {
     await sembrar({ colonia: c, gravedad: 4, edadDias: 1, comentario: "sospechoso", comentarioPublico: true, sospechoso: true });
     await sembrar({ colonia: c, gravedad: 4, edadDias: 40, comentario: "muy viejo", comentarioPublico: true });
     const d = await json(await detalle(c));
-    expect(d.comentarios).toEqual([{ dia: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), gravedad: 3, texto: "sale café por las mañanas" }]);
-    expect(JSON.stringify(d)).not.toMatch(/antes del aviso|moderador|en revisión|sospechoso|muy viejo|"huella"|red_hash/);
+    // sin límite de antigüedad (v5): el viejo también se muestra, después del reciente
+    expect(d.comentarios).toEqual([
+      { dia: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), gravedad: 3, texto: "sale café por las mañanas" },
+      { dia: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), gravedad: 4, texto: "muy viejo" },
+    ]);
+    expect(JSON.stringify(d)).not.toMatch(/antes del aviso|moderador|en revisión|sospechoso|"huella"|red_hash/);
   });
 
-  it("la serie solo incluye reportes visibles y no sospechosos de los últimos 30 días", async () => {
+  it("la serie incluye todo el historial visible y no sospechoso (sin límite de antigüedad desde v5)", async () => {
     const c = await crearColonia();
     await sembrarVecinos(c, 2, 8, { dias: 3, edadBase: 2 }); // publicable
     await sembrar({ colonia: c, gravedad: 4, edadDias: 1, estado: "revision" });
     await sembrar({ colonia: c, gravedad: 4, edadDias: 1, estado: "oculto" });
     await sembrar({ colonia: c, gravedad: 4, edadDias: 1, sospechoso: true });
-    await sembrar({ colonia: c, gravedad: 4, edadDias: 40 });
+    await sembrar({ colonia: c, gravedad: 4, edadDias: 40 }); // viejo: sí cuenta y sí sale en la serie
     const d = await json(await detalle(c));
-    expect(d.reportes.n).toBe(8);
-    expect(d.reportes.serie.reduce((a: number, p: { n: number }) => a + p.n, 0)).toBe(8);
-    for (const p of d.reportes.serie) expect(p.score).toBe(2);
+    expect(d.reportes.n).toBe(9);
+    expect(d.reportes.serie.reduce((a: number, p: { n: number }) => a + p.n, 0)).toBe(9);
+    expect(d.reportes.serie[0].score).toBe(4);
+    for (const p of d.reportes.serie.slice(1)) expect(p.score).toBe(2);
   });
 
   it("no filtra huellas, redes, comentarios ni estados de moderación", async () => {
